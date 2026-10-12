@@ -31,3 +31,5 @@ select:focus-visible { outline: 2px solid #fafaf6; outline-offset: 3px; }
 .scoreboard-scroll th, .scoreboard-scroll td { padding: .6rem; text-align: left; border-bottom: 1px solid #ffffff18; }
 .scoreboard-scroll th[scope=row] { min-width: 9rem; font-weight: normal; overflow-wrap: anywhere; }
 @media (max-width: 480px) { main { padding: 2rem 1rem; } .history-match { padding: .75rem; } }
+.capture-auto-sync { display: flex; align-items: center; gap: .6rem; margin: 1rem 0; }
+.capture-auto-sync input { width: auto; margin: 0; flex: 0 0 auto; }

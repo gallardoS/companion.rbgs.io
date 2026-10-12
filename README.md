@@ -51,4 +51,16 @@ History refreshes every five seconds or through **Refresh match history**. Stabl
 
 Snapshots retain canonical UTF-8 JSON and SHA-256 digests. Identical revisions are deduplicated; conflicting contents are preserved and excluded from completed history. Codes and GUIDs remain private to native snapshots. Account context is confirmed through the native device API and isolated by API origin, credential fingerprint and selected game source. Unbound imports remain preserved separately.
 
-The local queue is bounded to 100 snapshots, 25 MiB of payloads, 256 KiB per snapshot and 50 MiB disk headroom. Full, unavailable, corrupt or unsupported storage preserves existing files and reports an error. No snapshots are automatically pruned, no game files are written and no captures are uploaded in this stage.
+The local queue is bounded to 100 snapshots, 25 MiB of payloads, 256 KiB per snapshot and 50 MiB disk headroom. Full, unavailable, corrupt or unsupported storage preserves existing files and reports an error. No snapshots are automatically pruned and no game files are written.
+
+## Controlled capture delivery
+
+Existing status-only devices must choose **Enable capture permissions** and approve assignment access and evidence uploads in web Settings. Rust checks current account and permissions before authenticated operations; tokens remain in Windows Credential Manager.
+
+For local tests, enable `RBGS_CONTROLLED_CAPTURE_ENABLED=true` on the backend and restart it. An active moderator creates a controlled Darkspear test in web Settings. The companion lists this account's assignments. Issue the one-time code and paste the saved `/rbgs match RB2:…` command into WoW before entering the BG. Issuance is saved locally before display. If the code was issued but cannot be recovered locally or from the addon, request a fresh assignment.
+
+After `/reload` or logout, terminal captures bound to an own assignment are uploaded every 15 seconds with durable retry delays and bounded `Retry-After` handling. The checkbox pauses automatic uploads; **Sync saved captures** triggers a manual attempt. A suspended webview can delay automatic synchronization.
+
+SQLite schema 2 migrates the existing inbox and freezes the exact canonical HTTP body and SHA-256 digest before sending. Restarts and retries reuse those bytes. Receipt recovery runs before submission. **Received by server** requires matching assignment/capture IDs, revision, digest and durable-storage confirmation. Conflicts, damaged data and previous snapshots remain preserved. Issuances and transport records are bounded to 100 each.
+
+Controlled reports always go to review. A server receipt confirms storage; it does not establish account ownership, verified match results or rating.

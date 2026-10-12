@@ -5,7 +5,7 @@ type Identity = { name: string; realm: string | null; guid: null };
 type Row = { character: Identity; observedTeamKey: string | null; killingBlows: number | null; honorableKills: number | null; deaths: number | null; damage: number | null; healing: number | null };
 type Match = { captureId: string; revision: number; character: Identity; map: { profile: string; observedName: string; gameMapId: number | null }; startedAt: string; endedAt: string; winner: string; roster: Row[]; build: string };
 type QueueItem = { captureId: string; revision: number; state: string; coverage: string; savedAt: number };
-type Queue = { status: string; message: string; snapshots: number; captures: number; conflicts: number; waitingAssignment: number; needsAuth: number; bytes: number; items: QueueItem[]; sourceStatus: string; sourceMessage: string; unboundSnapshots: number };
+type Queue = { status: string; message: string; snapshots: number; captures: number; conflicts: number; waitingAssignment: number; needsAuth: number; acknowledged?: number; pending?: number; blocked?: number; bytes: number; items: QueueItem[]; sourceStatus: string; sourceMessage: string; unboundSnapshots: number };
 type View = { status: string; message: string; matches: Match[]; retainedAttempts: number; queue: Queue | null };
 const text = (v: unknown): v is string => typeof v === 'string' && v.length > 0 && v.length <= 512;
 const number = (v: unknown): v is number | null => v === null || typeof v === 'number' && Number.isSafeInteger(v) && v >= 0;
@@ -14,11 +14,12 @@ function validQueue(queue: Queue | null) {
   return queue === null || !!queue && ['READY', 'STORAGE_FULL', 'STORAGE_UNAVAILABLE', 'UNSUPPORTED_STORAGE', 'INVALID_DATA'].includes(queue.status)
     && text(queue.message) && text(queue.sourceStatus) && text(queue.sourceMessage)
     && [queue.snapshots, queue.captures, queue.conflicts, queue.waitingAssignment, queue.needsAuth, queue.unboundSnapshots].every(n => number(n) && n !== null && n <= 100)
+    && [queue.acknowledged, queue.pending, queue.blocked].every(n => n === undefined || number(n) && n !== null && n <= 100)
     && queue.captures <= queue.snapshots && queue.conflicts <= queue.captures && queue.waitingAssignment + queue.needsAuth <= queue.snapshots
     && number(queue.bytes) && queue.bytes !== null && queue.bytes <= 25 * 1024 * 1024
     && Array.isArray(queue.items) && queue.items.length === queue.snapshots && queue.items.every(item => item && text(item.captureId)
       && /^[0-9a-f-]{36}$/i.test(item.captureId) && number(item.revision) && item.revision >= 1 && item.revision <= 2147483647
-      && ['WAITING_ASSIGNMENT', 'NEEDS_AUTH', 'CONFLICT'].includes(item.state) && ['COMPLETE', 'INCOMPLETE'].includes(item.coverage) && number(item.savedAt));
+      && ['WAITING_ASSIGNMENT', 'NEEDS_AUTH', 'CONFLICT', 'PENDING', 'SENDING', 'ACKNOWLEDGED', 'BLOCKED'].includes(item.state) && ['COMPLETE', 'INCOMPLETE'].includes(item.coverage) && number(item.savedAt));
 }
 function valid(value: unknown): value is View {
   if (!value || typeof value !== 'object') return false;
@@ -78,11 +79,12 @@ export function MatchHistory() {
         <h3>Local capture queue</h3>
         <p role={view.queue.status === 'READY' ? 'status' : 'alert'}>{view.queue.message}</p>
         <p>{view.queue.snapshots} saved revisions · {view.queue.waitingAssignment} waiting for assignment · {view.queue.needsAuth} waiting for account confirmation</p>
+        <p>{view.queue.acknowledged ?? 0} received by server · {view.queue.pending ?? 0} pending delivery · {view.queue.blocked ?? 0} blocked</p>
         {view.queue.conflicts > 0 && <p role="alert">{view.queue.conflicts} conflicting captures preserved. They are excluded from completed history.</p>}
         {view.queue.unboundSnapshots > 0 && <p>{view.queue.unboundSnapshots} earlier unbound snapshots are preserved separately for assignment recovery.</p>}
         {view.queue.sourceStatus !== 'READY' && <p role="status">{view.queue.sourceMessage} Previously saved captures remain available.</p>}
         {!!view.queue.items.length && <details><summary>Saved revisions</summary><ul>{view.queue.items.map((item, index) => <li key={index}>
-          <span className="local-path">{item.captureId}</span> · revision {item.revision} · {item.coverage.toLowerCase()} · {({WAITING_ASSIGNMENT:'Waiting for assignment',NEEDS_AUTH:'Waiting for account confirmation',CONFLICT:'Conflict'})[item.state as 'WAITING_ASSIGNMENT']}
+          <span className="local-path">{item.captureId}</span> · revision {item.revision} · {item.coverage.toLowerCase()} · {({WAITING_ASSIGNMENT:'Waiting for assignment',NEEDS_AUTH:'Waiting for account confirmation',CONFLICT:'Conflict',PENDING:'Pending delivery',SENDING:'Sending',ACKNOWLEDGED:'Received by server',BLOCKED:'Blocked'})[item.state as 'WAITING_ASSIGNMENT']}
         </li>)}</ul></details>}
       </div>}
     {error ? <p role="alert">{error}</p> : view?.status !== 'READY' ? <p role="status">{view?.message ?? 'Reading match history…'}</p> : <>

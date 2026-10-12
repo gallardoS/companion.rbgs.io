@@ -1,4 +1,4 @@
-//! Immutable local snapshots with account and source isolation.
+//! Immutable local snapshots and durable account-scoped transport state.
 use super::*;
 use rusqlite::{Connection, OpenFlags, OptionalExtension, TransactionBehavior, params};
 use serde_json::Value;
@@ -123,6 +123,12 @@ pub(super) struct Inbox {
     parent: PathBuf,
 }
 impl Inbox {
+    pub(super) fn reserve_space(&self, bytes: usize) -> Result<()> {
+        if disk_available(&self.parent)? < DISK_RESERVE.saturating_add(bytes as u64 * 2) {
+            return Err("STORAGE_FULL");
+        }
+        Ok(())
+    }
     pub(super) fn open(path: &Path) -> Result<Self> {
         let parent = path.parent().ok_or("STORAGE_UNAVAILABLE")?;
         fs::create_dir_all(parent).map_err(|_| "STORAGE_UNAVAILABLE")?;
@@ -154,7 +160,7 @@ impl Inbox {
         let version: u32 = db
             .query_row("PRAGMA user_version", [], |row| row.get(0))
             .map_err(|_| "STORAGE_UNAVAILABLE")?;
-        if version > 1 {
+        if version > 2 {
             return Err("UNSUPPORTED_STORAGE");
         }
         db.execute_batch("PRAGMA journal_mode=DELETE; PRAGMA synchronous=FULL; PRAGMA foreign_keys=ON; PRAGMA trusted_schema=OFF; PRAGMA max_page_count=16384;")
@@ -173,6 +179,17 @@ impl Inbox {
                 CREATE INDEX source_lookup ON sources(source,scope);
                 PRAGMA user_version=1;") .map_err(|_| "STORAGE_UNAVAILABLE")?;
             tx.commit().map_err(|_| "STORAGE_UNAVAILABLE")?;
+        }
+        if version <= 1 {
+            db.execute_batch("BEGIN IMMEDIATE;
+              CREATE TABLE capture_transports(origin TEXT NOT NULL,account_id TEXT NOT NULL,capture_id TEXT NOT NULL,revision INTEGER NOT NULL,
+                snapshot_scope TEXT NOT NULL,snapshot_digest TEXT NOT NULL,assignment_id TEXT,payload BLOB,content_sha256 TEXT,
+                state TEXT NOT NULL CHECK(state IN ('WAITING_ASSIGNMENT','PENDING','SENDING','ACKNOWLEDGED','NEEDS_AUTH','BLOCKED','CONFLICT')),
+                attempts INTEGER NOT NULL DEFAULT 0,next_attempt_at INTEGER NOT NULL DEFAULT 0,receipt BLOB,last_error TEXT,
+                PRIMARY KEY(origin,account_id,capture_id,revision));
+              CREATE TABLE capture_issuances(origin TEXT NOT NULL,account_id TEXT NOT NULL,capture_id TEXT NOT NULL,code TEXT NOT NULL,descriptor BLOB NOT NULL,
+                PRIMARY KEY(origin,account_id,capture_id));
+              PRAGMA user_version=2; COMMIT;") .map_err(|_| "STORAGE_UNAVAILABLE")?;
         }
         Ok(Self {
             db,
@@ -337,13 +354,16 @@ impl Inbox {
         tx.commit().map_err(|_| "STORAGE_UNAVAILABLE")
     }
     fn view(&self, scope: &str, source: &str) -> Result<(Vec<history::Match>, QueueView)> {
-        let mut statement = self.db.prepare("SELECT s.capture_id,s.revision,s.digest,CASE WHEN length(s.payload)<=262144 THEN s.payload ELSE NULL END,
-            s.state,s.saved_at FROM snapshots s JOIN sources l
+        let (origin, account) = scope.split_once("|account:").unwrap_or(("", ""));
+        let mut statement=self.db.prepare("SELECT s.capture_id,s.revision,s.digest,CASE WHEN length(s.payload)<=262144 THEN s.payload ELSE NULL END,
+            CASE WHEN s.state='CONFLICT' THEN 'CONFLICT' ELSE COALESCE(t.state,s.state) END,s.saved_at FROM snapshots s JOIN sources l
             ON s.scope=l.scope AND s.capture_id=l.capture_id AND s.revision=l.revision AND s.digest=l.digest
-            WHERE l.source=? AND s.scope=? ORDER BY s.capture_id,s.revision DESC,s.digest,s.saved_at")
+            LEFT JOIN capture_transports t ON t.origin=? AND t.account_id=? AND t.capture_id=s.capture_id AND t.revision=s.revision AND t.snapshot_digest=s.digest
+            WHERE l.source=? AND (s.scope=? OR (t.assignment_id IS NOT NULL AND s.scope LIKE '%|unbound:%'))
+            ORDER BY s.capture_id,s.revision DESC,s.digest,s.saved_at")
             .map_err(|_| "STORAGE_UNAVAILABLE")?;
         let rows = statement
-            .query_map(params![source, scope], |r| {
+            .query_map(params![origin, account, source, scope], |r| {
                 Ok((
                     r.get::<_, String>(0)?,
                     r.get::<_, u32>(1)?,
@@ -361,6 +381,9 @@ impl Inbox {
         let mut conflicts = BTreeSet::new();
         let mut waiting = 0;
         let mut needs_auth = 0;
+        let mut acknowledged = 0;
+        let mut pending = 0;
+        let mut blocked = 0;
         let mut seen = BTreeSet::new();
         for row in rows {
             let (id, revision, hash, payload, state, saved_at) =
@@ -392,6 +415,9 @@ impl Inbox {
                 }
                 "WAITING_ASSIGNMENT" => waiting += 1,
                 "NEEDS_AUTH" => needs_auth += 1,
+                "ACKNOWLEDGED" => acknowledged += 1,
+                "PENDING" | "SENDING" => pending += 1,
+                "BLOCKED" => blocked += 1,
                 _ => return Err("STORAGE_UNAVAILABLE"),
             };
             if ids.insert(id.clone()) && state != "CONFLICT" {
@@ -418,12 +444,15 @@ impl Inbox {
         });
         let queue = QueueView {
             status: "READY",
-            message: "Saved local observations are preserved across restarts. They are not verified match evidence.",
+            message: "Local snapshots and server receipts are separate. A receipt confirms storage, not verification or rating.",
             snapshots: items.len(),
             captures: ids.len(),
             conflicts: conflicts.len(),
             waiting_assignment: waiting,
             needs_auth,
+            acknowledged,
+            pending,
+            blocked,
             bytes: total,
             items,
             source_status: String::new(),
@@ -453,6 +482,9 @@ pub struct QueueView {
     conflicts: usize,
     waiting_assignment: usize,
     needs_auth: usize,
+    acknowledged: usize,
+    pending: usize,
+    blocked: usize,
     bytes: usize,
     items: Vec<QueueItem>,
     source_status: String,
@@ -483,6 +515,9 @@ fn error_queue(status: &'static str) -> QueueView {
         conflicts: 0,
         waiting_assignment: 0,
         needs_auth: 0,
+        acknowledged: 0,
+        pending: 0,
+        blocked: 0,
         bytes: 0,
         items: vec![],
         source_status: String::new(),

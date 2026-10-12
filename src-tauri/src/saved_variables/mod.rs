@@ -1,6 +1,7 @@
 pub mod history;
 pub(crate) mod inbox;
 mod parser;
+pub mod transport;
 
 use parser::{Compatibility, MAX_BYTES, ParseError, Summary};
 use serde::{Deserialize, Serialize};

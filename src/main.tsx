@@ -3,6 +3,7 @@ import { invoke } from '@tauri-apps/api/core';
 import { createRoot } from 'react-dom/client';
 import { t } from './locales/en';
 import { SavedVariables } from './SavedVariables';
+import { CaptureAssignments } from './CaptureAssignments';
 import './styles.css';
 
 function App() {
@@ -10,14 +11,15 @@ function App() {
   const [pairing, setPairing] = useState<{ code: string; expiresAt: string } | null>(null);
   const [connected, setConnected] = useState(false);
   const [capturePermissions, setCapturePermissions] = useState(false);
+  const [accountId, setAccountId] = useState('');
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState('Checking saved connectionâ€¦');
   const inFlight = useRef(false);
   const checkEpoch = useRef(0);
   async function check() {
     const epoch=++checkEpoch.current;
-    try { const status = await invoke<{ accountId: string; localStorageWarning?: string | null; capturePermissions: boolean }>('connection_status'); if(epoch!==checkEpoch.current)return; setConnected(true); setCapturePermissions(status.capturePermissions === true); setMessage(status.localStorageWarning ? `Connected to your rbgs.io account. ${status.localStorageWarning}` : 'Connected to your rbgs.io account.'); }
-    catch (error) { if(epoch!==checkEpoch.current)return; setConnected(false); setCapturePermissions(false); setMessage(String(error)); }
+    try { const status = await invoke<{ accountId: string; localStorageWarning?: string | null; capturePermissions: boolean }>('connection_status'); if(epoch!==checkEpoch.current)return; setConnected(true); setAccountId(status.accountId ?? ''); setCapturePermissions(status.capturePermissions === true); setMessage(status.localStorageWarning ? `Connected to your rbgs.io account. ${status.localStorageWarning}` : 'Connected to your rbgs.io account.'); }
+    catch (error) { if(epoch!==checkEpoch.current)return; setConnected(false); setAccountId(''); setCapturePermissions(false); setMessage(String(error)); }
   }
   useEffect(() => { void check(); return () => { ++checkEpoch.current; }; }, []);
   useEffect(() => {
@@ -56,6 +58,7 @@ function App() {
     {pairing && <p>If enabling captures, approve assignment access and saved-capture uploads in web Settings.</p>}
     <p>{connected ? 'Manage or revoke this device in web Settings.' : 'Approve only the code shown in your own companion.'}</p>
     <SavedVariables />
+    {connected && capturePermissions && <CaptureAssignments key={accountId} />}
   </main>;
 }
 

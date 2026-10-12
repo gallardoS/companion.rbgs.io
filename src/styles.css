@@ -10,3 +10,13 @@ button:disabled { opacity: .5; cursor: default; }
 button:focus-visible, input:focus-visible { outline: 2px solid #fafaf6; outline-offset: 3px; }
 .pairing-code { display: block; font-size: 2rem; letter-spacing: .2em; color: #facc15; overflow-wrap: anywhere; }
 strong { overflow-wrap: anywhere; }
+.saved-variables { margin-top: 2rem; padding-top: 1.5rem; border-top: 1px solid #ffffff25; }
+.local-path, .saved-data-summary dd { overflow-wrap: anywhere; }
+.source-picker { margin-top: 1rem; }
+select { box-sizing: border-box; max-width: 100%; width: 100%; background: #070808; color: #fafaf6; border: 1px solid #ffffff40; border-radius: .5rem; padding: .75rem; font: inherit; }
+select:focus-visible { outline: 2px solid #fafaf6; outline-offset: 3px; }
+.saved-data-summary { margin-top: 1.5rem; }
+.saved-data-summary div { padding: .65rem 0; border-top: 1px solid #ffffff18; }
+.saved-data-summary dt { color: #b5c0cf; font-size: .875rem; }
+.saved-data-summary dd { margin: .25rem 0 0; }
+.saved-data-note { font-size: .875rem; }

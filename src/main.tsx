@@ -2,6 +2,7 @@ import { StrictMode, useEffect, useRef, useState } from 'react';
 import { invoke } from '@tauri-apps/api/core';
 import { createRoot } from 'react-dom/client';
 import { t } from './locales/en';
+import { SavedVariables } from './SavedVariables';
 import './styles.css';
 
 function App() {
@@ -54,6 +55,7 @@ function App() {
     {connected && !capturePermissions && <button disabled={busy} onClick={() => void start(true)}>Enable capture permissions</button>}
     {pairing && <p>If enabling captures, approve assignment access and saved-capture uploads in web Settings.</p>}
     <p>{connected ? 'Manage or revoke this device in web Settings.' : 'Approve only the code shown in your own companion.'}</p>
+    <SavedVariables />
   </main>;
 }
 

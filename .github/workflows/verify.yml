@@ -9,11 +9,15 @@ jobs:
         with:
           node-version: '22'
           cache: npm
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
       - uses: dtolnay/rust-toolchain@stable
         with:
           components: rustfmt
       - run: npm ci
       - run: npm run build
+      - run: python -m unittest discover -s tools -p test_parse_probe.py
       - run: cargo fmt --check --manifest-path src-tauri/Cargo.toml
       - run: cargo test --manifest-path src-tauri/Cargo.toml --lib
       - run: npx tauri build --no-bundle

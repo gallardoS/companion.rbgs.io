@@ -1,0 +1,3078 @@
+{
+  "source": "Forever beta 1.60.1.70338, real automatic Darkspear Islands final capture on 2026-10-11",
+  "privacy": "Only build/instance metadata, event names, capture phases and numeric score values retained. Names, realm, GUIDs, timestamps and unrelated arguments omitted.",
+  "validation": "Screenshots show Horde defeat, 15 players per team and matching visible numeric score rows. Raw winner 1. Not WSG, ownership or ranked acceptance; objective fields remain unvalidated.",
+  "originalRecordCount": 46,
+  "schema": 1,
+  "records": [
+    {
+      "kind": "event",
+      "payload": {
+        "name": "PLAYER_LOGOUT"
+      }
+    },
+    {
+      "kind": "environment",
+      "payload": {
+        "build": {
+          "1": "1.60.1",
+          "2": "70338",
+          "4": "16001",
+          "count": 6
+        },
+        "instance": {
+          "3": "0",
+          "5": "0",
+          "6": "0",
+          "8": "0",
+          "9": "0",
+          "count": 11
+        }
+      }
+    },
+    {
+      "kind": "event",
+      "payload": {
+        "name": "PLAYER_ENTERING_WORLD"
+      }
+    },
+    {
+      "kind": "event",
+      "payload": {
+        "name": "ZONE_CHANGED_NEW_AREA"
+      }
+    },
+    {
+      "kind": "event",
+      "payload": {
+        "name": "ZONE_CHANGED_NEW_AREA"
+      }
+    },
+    {
+      "kind": "event",
+      "payload": {
+        "name": "ZONE_CHANGED_NEW_AREA"
+      }
+    },
+    {
+      "kind": "event",
+      "payload": {
+        "name": "ZONE_CHANGED_NEW_AREA"
+      }
+    },
+    {
+      "kind": "event",
+      "payload": {
+        "name": "ZONE_CHANGED_NEW_AREA"
+      }
+    },
+    {
+      "kind": "event",
+      "payload": {
+        "name": "ZONE_CHANGED_NEW_AREA"
+      }
+    },
+    {
+      "kind": "event",
+      "payload": {
+        "name": "ZONE_CHANGED_NEW_AREA"
+      }
+    },
+    {
+      "kind": "event",
+      "payload": {
+        "name": "ZONE_CHANGED_NEW_AREA"
+      }
+    },
+    {
+      "kind": "event",
+      "payload": {
+        "name": "ZONE_CHANGED_NEW_AREA"
+      }
+    },
+    {
+      "kind": "event",
+      "payload": {
+        "name": "PLAYER_ENTERING_WORLD"
+      }
+    },
+    {
+      "kind": "environment",
+      "payload": {
+        "build": {
+          "1": "1.60.1",
+          "2": "70338",
+          "4": "16001",
+          "count": 6
+        },
+        "instance": {
+          "3": "0",
+          "5": "0",
+          "6": "0",
+          "8": "2997",
+          "9": "0",
+          "count": 11,
+          "1": "Darkspear Islands",
+          "2": "pvp"
+        }
+      }
+    },
+    {
+      "kind": "scoreboard",
+      "payload": {
+        "count": 0,
+        "winner": {
+          "1": "<nil or protected>",
+          "count": 1
+        },
+        "rows": []
+      }
+    },
+    {
+      "kind": "capture_marker",
+      "payload": {
+        "phase": "Automatic BG entry"
+      }
+    },
+    {
+      "kind": "event",
+      "payload": {
+        "name": "PVP_MATCH_ACTIVE"
+      }
+    },
+    {
+      "kind": "event",
+      "payload": {
+        "name": "ZONE_CHANGED_NEW_AREA"
+      }
+    },
+    {
+      "kind": "environment",
+      "payload": {
+        "build": {
+          "1": "1.60.1",
+          "2": "70338",
+          "4": "16001",
+          "count": 6
+        },
+        "instance": {
+          "3": "0",
+          "5": "15",
+          "6": "0",
+          "8": "2997",
+          "9": "0",
+          "count": 11,
+          "1": "Darkspear Islands",
+          "2": "pvp"
+        }
+      }
+    },
+    {
+      "kind": "scoreboard",
+      "payload": {
+        "count": 30,
+        "winner": {
+          "1": "<nil or protected>",
+          "count": 1
+        },
+        "rows": [
+          {
+            "index": 1,
+            "values": {
+              "1": "SyntheticPlayer1",
+              "2": "<redacted>",
+              "3": "<redacted>",
+              "4": "<redacted>",
+              "5": "<redacted>",
+              "6": "1",
+              "7": "<redacted>",
+              "8": "<redacted>",
+              "9": "<redacted>",
+              "10": "<redacted>",
+              "11": "<redacted>",
+              "12": "<redacted>",
+              "13": "<redacted>",
+              "14": "<redacted>",
+              "15": "<redacted>",
+              "16": "<redacted>",
+              "17": "<redacted>",
+              "count": 17
+            }
+          },
+          {
+            "index": 2,
+            "values": {
+              "1": "SyntheticPlayer2",
+              "2": "<redacted>",
+              "3": "<redacted>",
+              "4": "<redacted>",
+              "5": "<redacted>",
+              "6": "0",
+              "7": "<redacted>",
+              "8": "<redacted>",
+              "9": "<redacted>",
+              "10": "<redacted>",
+              "11": "<redacted>",
+              "12": "<redacted>",
+              "13": "<redacted>",
+              "14": "<redacted>",
+              "15": "<redacted>",
+              "16": "<redacted>",
+              "17": "<redacted>",
+              "count": 17
+            }
+          },
+          {
+            "index": 3,
+            "values": {
+              "1": "SyntheticPlayer3",
+              "2": "<redacted>",
+              "3": "<redacted>",
+              "4": "<redacted>",
+              "5": "<redacted>",
+              "6": "0",
+              "7": "<redacted>",
+              "8": "<redacted>",
+              "9": "<redacted>",
+              "10": "<redacted>",
+              "11": "<redacted>",
+              "12": "<redacted>",
+              "13": "<redacted>",
+              "14": "<redacted>",
+              "15": "<redacted>",
+              "16": "<redacted>",
+              "17": "<redacted>",
+              "count": 17
+            }
+          },
+          {
+            "index": 4,
+            "values": {
+              "1": "SyntheticPlayer4",
+              "2": "<redacted>",
+              "3": "<redacted>",
+              "4": "<redacted>",
+              "5": "<redacted>",
+              "6": "0",
+              "7": "<redacted>",
+              "8": "<redacted>",
+              "9": "<redacted>",
+              "10": "<redacted>",
+              "11": "<redacted>",
+              "12": "<redacted>",
+              "13": "<redacted>",
+              "14": "<redacted>",
+              "15": "<redacted>",
+              "16": "<redacted>",
+              "17": "<redacted>",
+              "count": 17
+            }
+          },
+          {
+            "index": 5,
+            "values": {
+              "1": "SyntheticPlayer5",
+              "2": "<redacted>",
+              "3": "<redacted>",
+              "4": "<redacted>",
+              "5": "<redacted>",
+              "6": "0",
+              "7": "<redacted>",
+              "8": "<redacted>",
+              "9": "<redacted>",
+              "10": "<redacted>",
+              "11": "<redacted>",
+              "12": "<redacted>",
+              "13": "<redacted>",
+              "14": "<redacted>",
+              "15": "<redacted>",
+              "16": "<redacted>",
+              "17": "<redacted>",
+              "count": 17
+            }
+          },
+          {
+            "index": 6,
+            "values": {
+              "1": "SyntheticPlayer6",
+              "2": "<redacted>",
+              "3": "<redacted>",
+              "4": "<redacted>",
+              "5": "<redacted>",
+              "6": "1",
+              "7": "<redacted>",
+              "8": "<redacted>",
+              "9": "<redacted>",
+              "10": "<redacted>",
+              "11": "<redacted>",
+              "12": "<redacted>",
+              "13": "<redacted>",
+              "14": "<redacted>",
+              "15": "<redacted>",
+              "16": "<redacted>",
+              "17": "<redacted>",
+              "count": 17
+            }
+          },
+          {
+            "index": 7,
+            "values": {
+              "1": "SyntheticPlayer7",
+              "2": "<redacted>",
+              "3": "<redacted>",
+              "4": "<redacted>",
+              "5": "<redacted>",
+              "6": "0",
+              "7": "<redacted>",
+              "8": "<redacted>",
+              "9": "<redacted>",
+              "10": "<redacted>",
+              "11": "<redacted>",
+              "12": "<redacted>",
+              "13": "<redacted>",
+              "14": "<redacted>",
+              "15": "<redacted>",
+              "16": "<redacted>",
+              "17": "<redacted>",
+              "count": 17
+            }
+          },
+          {
+            "index": 8,
+            "values": {
+              "1": "SyntheticPlayer8",
+              "2": "<redacted>",
+              "3": "<redacted>",
+              "4": "<redacted>",
+              "5": "<redacted>",
+              "6": "0",
+              "7": "<redacted>",
+              "8": "<redacted>",
+              "9": "<redacted>",
+              "10": "<redacted>",
+              "11": "<redacted>",
+              "12": "<redacted>",
+              "13": "<redacted>",
+              "14": "<redacted>",
+              "15": "<redacted>",
+              "16": "<redacted>",
+              "17": "<redacted>",
+              "count": 17
+            }
+          },
+          {
+            "index": 9,
+            "values": {
+              "1": "SyntheticPlayer9",
+              "2": "<redacted>",
+              "3": "<redacted>",
+              "4": "<redacted>",
+              "5": "<redacted>",
+              "6": "0",
+              "7": "<redacted>",
+              "8": "<redacted>",
+              "9": "<redacted>",
+              "10": "<redacted>",
+              "11": "<redacted>",
+              "12": "<redacted>",
+              "13": "<redacted>",
+              "14": "<redacted>",
+              "15": "<redacted>",
+              "16": "<redacted>",
+              "17": "<redacted>",
+              "count": 17
+            }
+          },
+          {
+            "index": 10,
+            "values": {
+              "1": "SyntheticPlayer10",
+              "2": "<redacted>",
+              "3": "<redacted>",
+              "4": "<redacted>",
+              "5": "<redacted>",
+              "6": "0",
+              "7": "<redacted>",
+              "8": "<redacted>",
+              "9": "<redacted>",
+              "10": "<redacted>",
+              "11": "<redacted>",
+              "12": "<redacted>",
+              "13": "<redacted>",
+              "14": "<redacted>",
+              "15": "<redacted>",
+              "16": "<redacted>",
+              "17": "<redacted>",
+              "count": 17
+            }
+          },
+          {
+            "index": 11,
+            "values": {
+              "1": "SyntheticPlayer11",
+              "2": "<redacted>",
+              "3": "<redacted>",
+              "4": "<redacted>",
+              "5": "<redacted>",
+              "6": "1",
+              "7": "<redacted>",
+              "8": "<redacted>",
+              "9": "<redacted>",
+              "10": "<redacted>",
+              "11": "<redacted>",
+              "12": "<redacted>",
+              "13": "<redacted>",
+              "14": "<redacted>",
+              "15": "<redacted>",
+              "16": "<redacted>",
+              "17": "<redacted>",
+              "count": 17
+            }
+          },
+          {
+            "index": 12,
+            "values": {
+              "1": "SyntheticPlayer12",
+              "2": "<redacted>",
+              "3": "<redacted>",
+              "4": "<redacted>",
+              "5": "<redacted>",
+              "6": "1",
+              "7": "<redacted>",
+              "8": "<redacted>",
+              "9": "<redacted>",
+              "10": "<redacted>",
+              "11": "<redacted>",
+              "12": "<redacted>",
+              "13": "<redacted>",
+              "14": "<redacted>",
+              "15": "<redacted>",
+              "16": "<redacted>",
+              "17": "<redacted>",
+              "count": 17
+            }
+          },
+          {
+            "index": 13,
+            "values": {
+              "1": "SyntheticPlayer13",
+              "2": "<redacted>",
+              "3": "<redacted>",
+              "4": "<redacted>",
+              "5": "<redacted>",
+              "6": "0",
+              "7": "<redacted>",
+              "8": "<redacted>",
+              "9": "<redacted>",
+              "10": "<redacted>",
+              "11": "<redacted>",
+              "12": "<redacted>",
+              "13": "<redacted>",
+              "14": "<redacted>",
+              "15": "<redacted>",
+              "16": "<redacted>",
+              "17": "<redacted>",
+              "count": 17
+            }
+          },
+          {
+            "index": 14,
+            "values": {
+              "1": "SyntheticPlayer14",
+              "2": "<redacted>",
+              "3": "<redacted>",
+              "4": "<redacted>",
+              "5": "<redacted>",
+              "6": "1",
+              "7": "<redacted>",
+              "8": "<redacted>",
+              "9": "<redacted>",
+              "10": "<redacted>",
+              "11": "<redacted>",
+              "12": "<redacted>",
+              "13": "<redacted>",
+              "14": "<redacted>",
+              "15": "<redacted>",
+              "16": "<redacted>",
+              "17": "<redacted>",
+              "count": 17
+            }
+          },
+          {
+            "index": 15,
+            "values": {
+              "1": "SyntheticPlayer15",
+              "2": "<redacted>",
+              "3": "<redacted>",
+              "4": "<redacted>",
+              "5": "<redacted>",
+              "6": "0",
+              "7": "<redacted>",
+              "8": "<redacted>",
+              "9": "<redacted>",
+              "10": "<redacted>",
+              "11": "<redacted>",
+              "12": "<redacted>",
+              "13": "<redacted>",
+              "14": "<redacted>",
+              "15": "<redacted>",
+              "16": "<redacted>",
+              "17": "<redacted>",
+              "count": 17
+            }
+          },
+          {
+            "index": 16,
+            "values": {
+              "1": "SyntheticPlayer16",
+              "2": "<redacted>",
+              "3": "<redacted>",
+              "4": "<redacted>",
+              "5": "<redacted>",
+              "6": "1",
+              "7": "<redacted>",
+              "8": "<redacted>",
+              "9": "<redacted>",
+              "10": "<redacted>",
+              "11": "<redacted>",
+              "12": "<redacted>",
+              "13": "<redacted>",
+              "14": "<redacted>",
+              "15": "<redacted>",
+              "16": "<redacted>",
+              "17": "<redacted>",
+              "count": 17
+            }
+          },
+          {
+            "index": 17,
+            "values": {
+              "1": "SyntheticPlayer17",
+              "2": "<redacted>",
+              "3": "<redacted>",
+              "4": "<redacted>",
+              "5": "<redacted>",
+              "6": "1",
+              "7": "<redacted>",
+              "8": "<redacted>",
+              "9": "<redacted>",
+              "10": "<redacted>",
+              "11": "<redacted>",
+              "12": "<redacted>",
+              "13": "<redacted>",
+              "14": "<redacted>",
+              "15": "<redacted>",
+              "16": "<redacted>",
+              "17": "<redacted>",
+              "count": 17
+            }
+          },
+          {
+            "index": 18,
+            "values": {
+              "1": "SyntheticPlayer18",
+              "2": "<redacted>",
+              "3": "<redacted>",
+              "4": "<redacted>",
+              "5": "<redacted>",
+              "6": "0",
+              "7": "<redacted>",
+              "8": "<redacted>",
+              "9": "<redacted>",
+              "10": "<redacted>",
+              "11": "<redacted>",
+              "12": "<redacted>",
+              "13": "<redacted>",
+              "14": "<redacted>",
+              "15": "<redacted>",
+              "16": "<redacted>",
+              "17": "<redacted>",
+              "count": 17
+            }
+          },
+          {
+            "index": 19,
+            "values": {
+              "1": "SyntheticPlayer19",
+              "2": "<redacted>",
+              "3": "<redacted>",
+              "4": "<redacted>",
+              "5": "<redacted>",
+              "6": "1",
+              "7": "<redacted>",
+              "8": "<redacted>",
+              "9": "<redacted>",
+              "10": "<redacted>",
+              "11": "<redacted>",
+              "12": "<redacted>",
+              "13": "<redacted>",
+              "14": "<redacted>",
+              "15": "<redacted>",
+              "16": "<redacted>",
+              "17": "<redacted>",
+              "count": 17
+            }
+          },
+          {
+            "index": 20,
+            "values": {
+              "1": "SyntheticPlayer20",
+              "2": "<redacted>",
+              "3": "<redacted>",
+              "4": "<redacted>",
+              "5": "<redacted>",
+              "6": "0",
+              "7": "<redacted>",
+              "8": "<redacted>",
+              "9": "<redacted>",
+              "10": "<redacted>",
+              "11": "<redacted>",
+              "12": "<redacted>",
+              "13": "<redacted>",
+              "14": "<redacted>",
+              "15": "<redacted>",
+              "16": "<redacted>",
+              "17": "<redacted>",
+              "count": 17
+            }
+          },
+          {
+            "index": 21,
+            "values": {
+              "1": "SyntheticPlayer21",
+              "2": "<redacted>",
+              "3": "<redacted>",
+              "4": "<redacted>",
+              "5": "<redacted>",
+              "6": "1",
+              "7": "<redacted>",
+              "8": "<redacted>",
+              "9": "<redacted>",
+              "10": "<redacted>",
+              "11": "<redacted>",
+              "12": "<redacted>",
+              "13": "<redacted>",
+              "14": "<redacted>",
+              "15": "<redacted>",
+              "16": "<redacted>",
+              "17": "<redacted>",
+              "count": 17
+            }
+          },
+          {
+            "index": 22,
+            "values": {
+              "1": "SyntheticPlayer22",
+              "2": "<redacted>",
+              "3": "<redacted>",
+              "4": "<redacted>",
+              "5": "<redacted>",
+              "6": "1",
+              "7": "<redacted>",
+              "8": "<redacted>",
+              "9": "<redacted>",
+              "10": "<redacted>",
+              "11": "<redacted>",
+              "12": "<redacted>",
+              "13": "<redacted>",
+              "14": "<redacted>",
+              "15": "<redacted>",
+              "16": "<redacted>",
+              "17": "<redacted>",
+              "count": 17
+            }
+          },
+          {
+            "index": 23,
+            "values": {
+              "1": "SyntheticPlayer23",
+              "2": "<redacted>",
+              "3": "<redacted>",
+              "4": "<redacted>",
+              "5": "<redacted>",
+              "6": "0",
+              "7": "<redacted>",
+              "8": "<redacted>",
+              "9": "<redacted>",
+              "10": "<redacted>",
+              "11": "<redacted>",
+              "12": "<redacted>",
+              "13": "<redacted>",
+              "14": "<redacted>",
+              "15": "<redacted>",
+              "16": "<redacted>",
+              "17": "<redacted>",
+              "count": 17
+            }
+          },
+          {
+            "index": 24,
+            "values": {
+              "1": "SyntheticPlayer24",
+              "2": "<redacted>",
+              "3": "<redacted>",
+              "4": "<redacted>",
+              "5": "<redacted>",
+              "6": "0",
+              "7": "<redacted>",
+              "8": "<redacted>",
+              "9": "<redacted>",
+              "10": "<redacted>",
+              "11": "<redacted>",
+              "12": "<redacted>",
+              "13": "<redacted>",
+              "14": "<redacted>",
+              "15": "<redacted>",
+              "16": "<redacted>",
+              "17": "<redacted>",
+              "count": 17
+            }
+          },
+          {
+            "index": 25,
+            "values": {
+              "1": "SyntheticPlayer25",
+              "2": "<redacted>",
+              "3": "<redacted>",
+              "4": "<redacted>",
+              "5": "<redacted>",
+              "6": "1",
+              "7": "<redacted>",
+              "8": "<redacted>",
+              "9": "<redacted>",
+              "10": "<redacted>",
+              "11": "<redacted>",
+              "12": "<redacted>",
+              "13": "<redacted>",
+              "14": "<redacted>",
+              "15": "<redacted>",
+              "16": "<redacted>",
+              "17": "<redacted>",
+              "count": 17
+            }
+          },
+          {
+            "index": 26,
+            "values": {
+              "1": "SyntheticPlayer26",
+              "2": "<redacted>",
+              "3": "<redacted>",
+              "4": "<redacted>",
+              "5": "<redacted>",
+              "6": "1",
+              "7": "<redacted>",
+              "8": "<redacted>",
+              "9": "<redacted>",
+              "10": "<redacted>",
+              "11": "<redacted>",
+              "12": "<redacted>",
+              "13": "<redacted>",
+              "14": "<redacted>",
+              "15": "<redacted>",
+              "16": "<redacted>",
+              "17": "<redacted>",
+              "count": 17
+            }
+          },
+          {
+            "index": 27,
+            "values": {
+              "1": "SyntheticPlayer27",
+              "2": "<redacted>",
+              "3": "<redacted>",
+              "4": "<redacted>",
+              "5": "<redacted>",
+              "6": "1",
+              "7": "<redacted>",
+              "8": "<redacted>",
+              "9": "<redacted>",
+              "10": "<redacted>",
+              "11": "<redacted>",
+              "12": "<redacted>",
+              "13": "<redacted>",
+              "14": "<redacted>",
+              "15": "<redacted>",
+              "16": "<redacted>",
+              "17": "<redacted>",
+              "count": 17
+            }
+          },
+          {
+            "index": 28,
+            "values": {
+              "1": "SyntheticPlayer28",
+              "2": "<redacted>",
+              "3": "<redacted>",
+              "4": "<redacted>",
+              "5": "<redacted>",
+              "6": "1",
+              "7": "<redacted>",
+              "8": "<redacted>",
+              "9": "<redacted>",
+              "10": "<redacted>",
+              "11": "<redacted>",
+              "12": "<redacted>",
+              "13": "<redacted>",
+              "14": "<redacted>",
+              "15": "<redacted>",
+              "16": "<redacted>",
+              "17": "<redacted>",
+              "count": 17
+            }
+          },
+          {
+            "index": 29,
+            "values": {
+              "1": "SyntheticPlayer29",
+              "2": "<redacted>",
+              "3": "<redacted>",
+              "4": "<redacted>",
+              "5": "<redacted>",
+              "6": "1",
+              "7": "<redacted>",
+              "8": "<redacted>",
+              "9": "<redacted>",
+              "10": "<redacted>",
+              "11": "<redacted>",
+              "12": "<redacted>",
+              "13": "<redacted>",
+              "14": "<redacted>",
+              "15": "<redacted>",
+              "16": "<redacted>",
+              "17": "<redacted>",
+              "count": 17
+            }
+          },
+          {
+            "index": 30,
+            "values": {
+              "1": "SyntheticPlayer30",
+              "2": "<redacted>",
+              "3": "<redacted>",
+              "4": "<redacted>",
+              "5": "<redacted>",
+              "6": "0",
+              "7": "<redacted>",
+              "8": "<redacted>",
+              "9": "<redacted>",
+              "10": "<redacted>",
+              "11": "<redacted>",
+              "12": "<redacted>",
+              "13": "<redacted>",
+              "14": "<redacted>",
+              "15": "<redacted>",
+              "16": "<redacted>",
+              "17": "<redacted>",
+              "count": 17
+            }
+          }
+        ]
+      }
+    },
+    {
+      "kind": "capture_marker",
+      "payload": {
+        "phase": "Automatic 5-minute capture"
+      }
+    },
+    {
+      "kind": "environment",
+      "payload": {
+        "build": {
+          "1": "1.60.1",
+          "2": "70338",
+          "4": "16001",
+          "count": 6
+        },
+        "instance": {
+          "3": "0",
+          "5": "15",
+          "6": "0",
+          "8": "2997",
+          "9": "0",
+          "count": 11,
+          "1": "Darkspear Islands",
+          "2": "pvp"
+        }
+      }
+    },
+    {
+      "kind": "scoreboard",
+      "payload": {
+        "count": 30,
+        "winner": {
+          "1": "<nil or protected>",
+          "count": 1
+        },
+        "rows": [
+          {
+            "index": 1,
+            "values": {
+              "1": "SyntheticPlayer1",
+              "2": "<redacted>",
+              "3": "<redacted>",
+              "4": "<redacted>",
+              "5": "<redacted>",
+              "6": "1",
+              "7": "<redacted>",
+              "8": "<redacted>",
+              "9": "<redacted>",
+              "10": "<redacted>",
+              "11": "<redacted>",
+              "12": "<redacted>",
+              "13": "<redacted>",
+              "14": "<redacted>",
+              "15": "<redacted>",
+              "16": "<redacted>",
+              "17": "<redacted>",
+              "count": 17
+            }
+          },
+          {
+            "index": 2,
+            "values": {
+              "1": "SyntheticPlayer2",
+              "2": "<redacted>",
+              "3": "<redacted>",
+              "4": "<redacted>",
+              "5": "<redacted>",
+              "6": "0",
+              "7": "<redacted>",
+              "8": "<redacted>",
+              "9": "<redacted>",
+              "10": "<redacted>",
+              "11": "<redacted>",
+              "12": "<redacted>",
+              "13": "<redacted>",
+              "14": "<redacted>",
+              "15": "<redacted>",
+              "16": "<redacted>",
+              "17": "<redacted>",
+              "count": 17
+            }
+          },
+          {
+            "index": 3,
+            "values": {
+              "1": "SyntheticPlayer3",
+              "2": "<redacted>",
+              "3": "<redacted>",
+              "4": "<redacted>",
+              "5": "<redacted>",
+              "6": "0",
+              "7": "<redacted>",
+              "8": "<redacted>",
+              "9": "<redacted>",
+              "10": "<redacted>",
+              "11": "<redacted>",
+              "12": "<redacted>",
+              "13": "<redacted>",
+              "14": "<redacted>",
+              "15": "<redacted>",
+              "16": "<redacted>",
+              "17": "<redacted>",
+              "count": 17
+            }
+          },
+          {
+            "index": 4,
+            "values": {
+              "1": "SyntheticPlayer4",
+              "2": "<redacted>",
+              "3": "<redacted>",
+              "4": "<redacted>",
+              "5": "<redacted>",
+              "6": "1",
+              "7": "<redacted>",
+              "8": "<redacted>",
+              "9": "<redacted>",
+              "10": "<redacted>",
+              "11": "<redacted>",
+              "12": "<redacted>",
+              "13": "<redacted>",
+              "14": "<redacted>",
+              "15": "<redacted>",
+              "16": "<redacted>",
+              "17": "<redacted>",
+              "count": 17
+            }
+          },
+          {
+            "index": 5,
+            "values": {
+              "1": "SyntheticPlayer5",
+              "2": "<redacted>",
+              "3": "<redacted>",
+              "4": "<redacted>",
+              "5": "<redacted>",
+              "6": "0",
+              "7": "<redacted>",
+              "8": "<redacted>",
+              "9": "<redacted>",
+              "10": "<redacted>",
+              "11": "<redacted>",
+              "12": "<redacted>",
+              "13": "<redacted>",
+              "14": "<redacted>",
+              "15": "<redacted>",
+              "16": "<redacted>",
+              "17": "<redacted>",
+              "count": 17
+            }
+          },
+          {
+            "index": 6,
+            "values": {
+              "1": "SyntheticPlayer6",
+              "2": "<redacted>",
+              "3": "<redacted>",
+              "4": "<redacted>",
+              "5": "<redacted>",
+              "6": "1",
+              "7": "<redacted>",
+              "8": "<redacted>",
+              "9": "<redacted>",
+              "10": "<redacted>",
+              "11": "<redacted>",
+              "12": "<redacted>",
+              "13": "<redacted>",
+              "14": "<redacted>",
+              "15": "<redacted>",
+              "16": "<redacted>",
+              "17": "<redacted>",
+              "count": 17
+            }
+          },
+          {
+            "index": 7,
+            "values": {
+              "1": "SyntheticPlayer7",
+              "2": "<redacted>",
+              "3": "<redacted>",
+              "4": "<redacted>",
+              "5": "<redacted>",
+              "6": "1",
+              "7": "<redacted>",
+              "8": "<redacted>",
+              "9": "<redacted>",
+              "10": "<redacted>",
+              "11": "<redacted>",
+              "12": "<redacted>",
+              "13": "<redacted>",
+              "14": "<redacted>",
+              "15": "<redacted>",
+              "16": "<redacted>",
+              "17": "<redacted>",
+              "count": 17
+            }
+          },
+          {
+            "index": 8,
+            "values": {
+              "1": "SyntheticPlayer8",
+              "2": "<redacted>",
+              "3": "<redacted>",
+              "4": "<redacted>",
+              "5": "<redacted>",
+              "6": "0",
+              "7": "<redacted>",
+              "8": "<redacted>",
+              "9": "<redacted>",
+              "10": "<redacted>",
+              "11": "<redacted>",
+              "12": "<redacted>",
+              "13": "<redacted>",
+              "14": "<redacted>",
+              "15": "<redacted>",
+              "16": "<redacted>",
+              "17": "<redacted>",
+              "count": 17
+            }
+          },
+          {
+            "index": 9,
+            "values": {
+              "1": "SyntheticPlayer9",
+              "2": "<redacted>",
+              "3": "<redacted>",
+              "4": "<redacted>",
+              "5": "<redacted>",
+              "6": "0",
+              "7": "<redacted>",
+              "8": "<redacted>",
+              "9": "<redacted>",
+              "10": "<redacted>",
+              "11": "<redacted>",
+              "12": "<redacted>",
+              "13": "<redacted>",
+              "14": "<redacted>",
+              "15": "<redacted>",
+              "16": "<redacted>",
+              "17": "<redacted>",
+              "count": 17
+            }
+          },
+          {
+            "index": 10,
+            "values": {
+              "1": "SyntheticPlayer10",
+              "2": "<redacted>",
+              "3": "<redacted>",
+              "4": "<redacted>",
+              "5": "<redacted>",
+              "6": "0",
+              "7": "<redacted>",
+              "8": "<redacted>",
+              "9": "<redacted>",
+              "10": "<redacted>",
+              "11": "<redacted>",
+              "12": "<redacted>",
+              "13": "<redacted>",
+              "14": "<redacted>",
+              "15": "<redacted>",
+              "16": "<redacted>",
+              "17": "<redacted>",
+              "count": 17
+            }
+          },
+          {
+            "index": 11,
+            "values": {
+              "1": "SyntheticPlayer11",
+              "2": "<redacted>",
+              "3": "<redacted>",
+              "4": "<redacted>",
+              "5": "<redacted>",
+              "6": "0",
+              "7": "<redacted>",
+              "8": "<redacted>",
+              "9": "<redacted>",
+              "10": "<redacted>",
+              "11": "<redacted>",
+              "12": "<redacted>",
+              "13": "<redacted>",
+              "14": "<redacted>",
+              "15": "<redacted>",
+              "16": "<redacted>",
+              "17": "<redacted>",
+              "count": 17
+            }
+          },
+          {
+            "index": 12,
+            "values": {
+              "1": "SyntheticPlayer12",
+              "2": "<redacted>",
+              "3": "<redacted>",
+              "4": "<redacted>",
+              "5": "<redacted>",
+              "6": "0",
+              "7": "<redacted>",
+              "8": "<redacted>",
+              "9": "<redacted>",
+              "10": "<redacted>",
+              "11": "<redacted>",
+              "12": "<redacted>",
+              "13": "<redacted>",
+              "14": "<redacted>",
+              "15": "<redacted>",
+              "16": "<redacted>",
+              "17": "<redacted>",
+              "count": 17
+            }
+          },
+          {
+            "index": 13,
+            "values": {
+              "1": "SyntheticPlayer13",
+              "2": "<redacted>",
+              "3": "<redacted>",
+              "4": "<redacted>",
+              "5": "<redacted>",
+              "6": "0",
+              "7": "<redacted>",
+              "8": "<redacted>",
+              "9": "<redacted>",
+              "10": "<redacted>",
+              "11": "<redacted>",
+              "12": "<redacted>",
+              "13": "<redacted>",
+              "14": "<redacted>",
+              "15": "<redacted>",
+              "16": "<redacted>",
+              "17": "<redacted>",
+              "count": 17
+            }
+          },
+          {
+            "index": 14,
+            "values": {
+              "1": "SyntheticPlayer14",
+              "2": "<redacted>",
+              "3": "<redacted>",
+              "4": "<redacted>",
+              "5": "<redacted>",
+              "6": "1",
+              "7": "<redacted>",
+              "8": "<redacted>",
+              "9": "<redacted>",
+              "10": "<redacted>",
+              "11": "<redacted>",
+              "12": "<redacted>",
+              "13": "<redacted>",
+              "14": "<redacted>",
+              "15": "<redacted>",
+              "16": "<redacted>",
+              "17": "<redacted>",
+              "count": 17
+            }
+          },
+          {
+            "index": 15,
+            "values": {
+              "1": "SyntheticPlayer15",
+              "2": "<redacted>",
+              "3": "<redacted>",
+              "4": "<redacted>",
+              "5": "<redacted>",
+              "6": "1",
+              "7": "<redacted>",
+              "8": "<redacted>",
+              "9": "<redacted>",
+              "10": "<redacted>",
+              "11": "<redacted>",
+              "12": "<redacted>",
+              "13": "<redacted>",
+              "14": "<redacted>",
+              "15": "<redacted>",
+              "16": "<redacted>",
+              "17": "<redacted>",
+              "count": 17
+            }
+          },
+          {
+            "index": 16,
+            "values": {
+              "1": "SyntheticPlayer16",
+              "2": "<redacted>",
+              "3": "<redacted>",
+              "4": "<redacted>",
+              "5": "<redacted>",
+              "6": "1",
+              "7": "<redacted>",
+              "8": "<redacted>",
+              "9": "<redacted>",
+              "10": "<redacted>",
+              "11": "<redacted>",
+              "12": "<redacted>",
+              "13": "<redacted>",
+              "14": "<redacted>",
+              "15": "<redacted>",
+              "16": "<redacted>",
+              "17": "<redacted>",
+              "count": 17
+            }
+          },
+          {
+            "index": 17,
+            "values": {
+              "1": "SyntheticPlayer17",
+              "2": "<redacted>",
+              "3": "<redacted>",
+              "4": "<redacted>",
+              "5": "<redacted>",
+              "6": "0",
+              "7": "<redacted>",
+              "8": "<redacted>",
+              "9": "<redacted>",
+              "10": "<redacted>",
+              "11": "<redacted>",
+              "12": "<redacted>",
+              "13": "<redacted>",
+              "14": "<redacted>",
+              "15": "<redacted>",
+              "16": "<redacted>",
+              "17": "<redacted>",
+              "count": 17
+            }
+          },
+          {
+            "index": 18,
+            "values": {
+              "1": "SyntheticPlayer18",
+              "2": "<redacted>",
+              "3": "<redacted>",
+              "4": "<redacted>",
+              "5": "<redacted>",
+              "6": "0",
+              "7": "<redacted>",
+              "8": "<redacted>",
+              "9": "<redacted>",
+              "10": "<redacted>",
+              "11": "<redacted>",
+              "12": "<redacted>",
+              "13": "<redacted>",
+              "14": "<redacted>",
+              "15": "<redacted>",
+              "16": "<redacted>",
+              "17": "<redacted>",
+              "count": 17
+            }
+          },
+          {
+            "index": 19,
+            "values": {
+              "1": "SyntheticPlayer19",
+              "2": "<redacted>",
+              "3": "<redacted>",
+              "4": "<redacted>",
+              "5": "<redacted>",
+              "6": "0",
+              "7": "<redacted>",
+              "8": "<redacted>",
+              "9": "<redacted>",
+              "10": "<redacted>",
+              "11": "<redacted>",
+              "12": "<redacted>",
+              "13": "<redacted>",
+              "14": "<redacted>",
+              "15": "<redacted>",
+              "16": "<redacted>",
+              "17": "<redacted>",
+              "count": 17
+            }
+          },
+          {
+            "index": 20,
+            "values": {
+              "1": "SyntheticPlayer20",
+              "2": "<redacted>",
+              "3": "<redacted>",
+              "4": "<redacted>",
+              "5": "<redacted>",
+              "6": "0",
+              "7": "<redacted>",
+              "8": "<redacted>",
+              "9": "<redacted>",
+              "10": "<redacted>",
+              "11": "<redacted>",
+              "12": "<redacted>",
+              "13": "<redacted>",
+              "14": "<redacted>",
+              "15": "<redacted>",
+              "16": "<redacted>",
+              "17": "<redacted>",
+              "count": 17
+            }
+          },
+          {
+            "index": 21,
+            "values": {
+              "1": "SyntheticPlayer21",
+              "2": "<redacted>",
+              "3": "<redacted>",
+              "4": "<redacted>",
+              "5": "<redacted>",
+              "6": "1",
+              "7": "<redacted>",
+              "8": "<redacted>",
+              "9": "<redacted>",
+              "10": "<redacted>",
+              "11": "<redacted>",
+              "12": "<redacted>",
+              "13": "<redacted>",
+              "14": "<redacted>",
+              "15": "<redacted>",
+              "16": "<redacted>",
+              "17": "<redacted>",
+              "count": 17
+            }
+          },
+          {
+            "index": 22,
+            "values": {
+              "1": "SyntheticPlayer22",
+              "2": "<redacted>",
+              "3": "<redacted>",
+              "4": "<redacted>",
+              "5": "<redacted>",
+              "6": "1",
+              "7": "<redacted>",
+              "8": "<redacted>",
+              "9": "<redacted>",
+              "10": "<redacted>",
+              "11": "<redacted>",
+              "12": "<redacted>",
+              "13": "<redacted>",
+              "14": "<redacted>",
+              "15": "<redacted>",
+              "16": "<redacted>",
+              "17": "<redacted>",
+              "count": 17
+            }
+          },
+          {
+            "index": 23,
+            "values": {
+              "1": "SyntheticPlayer23",
+              "2": "<redacted>",
+              "3": "<redacted>",
+              "4": "<redacted>",
+              "5": "<redacted>",
+              "6": "1",
+              "7": "<redacted>",
+              "8": "<redacted>",
+              "9": "<redacted>",
+              "10": "<redacted>",
+              "11": "<redacted>",
+              "12": "<redacted>",
+              "13": "<redacted>",
+              "14": "<redacted>",
+              "15": "<redacted>",
+              "16": "<redacted>",
+              "17": "<redacted>",
+              "count": 17
+            }
+          },
+          {
+            "index": 24,
+            "values": {
+              "1": "SyntheticPlayer24",
+              "2": "<redacted>",
+              "3": "<redacted>",
+              "4": "<redacted>",
+              "5": "<redacted>",
+              "6": "0",
+              "7": "<redacted>",
+              "8": "<redacted>",
+              "9": "<redacted>",
+              "10": "<redacted>",
+              "11": "<redacted>",
+              "12": "<redacted>",
+              "13": "<redacted>",
+              "14": "<redacted>",
+              "15": "<redacted>",
+              "16": "<redacted>",
+              "17": "<redacted>",
+              "count": 17
+            }
+          },
+          {
+            "index": 25,
+            "values": {
+              "1": "SyntheticPlayer25",
+              "2": "<redacted>",
+              "3": "<redacted>",
+              "4": "<redacted>",
+              "5": "<redacted>",
+              "6": "1",
+              "7": "<redacted>",
+              "8": "<redacted>",
+              "9": "<redacted>",
+              "10": "<redacted>",
+              "11": "<redacted>",
+              "12": "<redacted>",
+              "13": "<redacted>",
+              "14": "<redacted>",
+              "15": "<redacted>",
+              "16": "<redacted>",
+              "17": "<redacted>",
+              "count": 17
+            }
+          },
+          {
+            "index": 26,
+            "values": {
+              "1": "SyntheticPlayer26",
+              "2": "<redacted>",
+              "3": "<redacted>",
+              "4": "<redacted>",
+              "5": "<redacted>",
+              "6": "1",
+              "7": "<redacted>",
+              "8": "<redacted>",
+              "9": "<redacted>",
+              "10": "<redacted>",
+              "11": "<redacted>",
+              "12": "<redacted>",
+              "13": "<redacted>",
+              "14": "<redacted>",
+              "15": "<redacted>",
+              "16": "<redacted>",
+              "17": "<redacted>",
+              "count": 17
+            }
+          },
+          {
+            "index": 27,
+            "values": {
+              "1": "SyntheticPlayer27",
+              "2": "<redacted>",
+              "3": "<redacted>",
+              "4": "<redacted>",
+              "5": "<redacted>",
+              "6": "1",
+              "7": "<redacted>",
+              "8": "<redacted>",
+              "9": "<redacted>",
+              "10": "<redacted>",
+              "11": "<redacted>",
+              "12": "<redacted>",
+              "13": "<redacted>",
+              "14": "<redacted>",
+              "15": "<redacted>",
+              "16": "<redacted>",
+              "17": "<redacted>",
+              "count": 17
+            }
+          },
+          {
+            "index": 28,
+            "values": {
+              "1": "SyntheticPlayer28",
+              "2": "<redacted>",
+              "3": "<redacted>",
+              "4": "<redacted>",
+              "5": "<redacted>",
+              "6": "1",
+              "7": "<redacted>",
+              "8": "<redacted>",
+              "9": "<redacted>",
+              "10": "<redacted>",
+              "11": "<redacted>",
+              "12": "<redacted>",
+              "13": "<redacted>",
+              "14": "<redacted>",
+              "15": "<redacted>",
+              "16": "<redacted>",
+              "17": "<redacted>",
+              "count": 17
+            }
+          },
+          {
+            "index": 29,
+            "values": {
+              "1": "SyntheticPlayer29",
+              "2": "<redacted>",
+              "3": "<redacted>",
+              "4": "<redacted>",
+              "5": "<redacted>",
+              "6": "0",
+              "7": "<redacted>",
+              "8": "<redacted>",
+              "9": "<redacted>",
+              "10": "<redacted>",
+              "11": "<redacted>",
+              "12": "<redacted>",
+              "13": "<redacted>",
+              "14": "<redacted>",
+              "15": "<redacted>",
+              "16": "<redacted>",
+              "17": "<redacted>",
+              "count": 17
+            }
+          },
+          {
+            "index": 30,
+            "values": {
+              "1": "SyntheticPlayer30",
+              "2": "<redacted>",
+              "3": "<redacted>",
+              "4": "<redacted>",
+              "5": "<redacted>",
+              "6": "1",
+              "7": "<redacted>",
+              "8": "<redacted>",
+              "9": "<redacted>",
+              "10": "<redacted>",
+              "11": "<redacted>",
+              "12": "<redacted>",
+              "13": "<redacted>",
+              "14": "<redacted>",
+              "15": "<redacted>",
+              "16": "<redacted>",
+              "17": "<redacted>",
+              "count": 17
+            }
+          }
+        ]
+      }
+    },
+    {
+      "kind": "capture_marker",
+      "payload": {
+        "phase": "Automatic 5-minute capture"
+      }
+    },
+    {
+      "kind": "environment",
+      "payload": {
+        "build": {
+          "1": "1.60.1",
+          "2": "70338",
+          "4": "16001",
+          "count": 6
+        },
+        "instance": {
+          "3": "0",
+          "5": "15",
+          "6": "0",
+          "8": "2997",
+          "9": "0",
+          "count": 11,
+          "1": "Darkspear Islands",
+          "2": "pvp"
+        }
+      }
+    },
+    {
+      "kind": "scoreboard",
+      "payload": {
+        "count": 30,
+        "winner": {
+          "1": "<nil or protected>",
+          "count": 1
+        },
+        "rows": [
+          {
+            "index": 1,
+            "values": {
+              "1": "SyntheticPlayer1",
+              "2": "<redacted>",
+              "3": "<redacted>",
+              "4": "<redacted>",
+              "5": "<redacted>",
+              "6": "0",
+              "7": "<redacted>",
+              "8": "<redacted>",
+              "9": "<redacted>",
+              "10": "<redacted>",
+              "11": "<redacted>",
+              "12": "<redacted>",
+              "13": "<redacted>",
+              "14": "<redacted>",
+              "15": "<redacted>",
+              "16": "<redacted>",
+              "17": "<redacted>",
+              "count": 17
+            }
+          },
+          {
+            "index": 2,
+            "values": {
+              "1": "SyntheticPlayer2",
+              "2": "<redacted>",
+              "3": "<redacted>",
+              "4": "<redacted>",
+              "5": "<redacted>",
+              "6": "1",
+              "7": "<redacted>",
+              "8": "<redacted>",
+              "9": "<redacted>",
+              "10": "<redacted>",
+              "11": "<redacted>",
+              "12": "<redacted>",
+              "13": "<redacted>",
+              "14": "<redacted>",
+              "15": "<redacted>",
+              "16": "<redacted>",
+              "17": "<redacted>",
+              "count": 17
+            }
+          },
+          {
+            "index": 3,
+            "values": {
+              "1": "SyntheticPlayer3",
+              "2": "<redacted>",
+              "3": "<redacted>",
+              "4": "<redacted>",
+              "5": "<redacted>",
+              "6": "0",
+              "7": "<redacted>",
+              "8": "<redacted>",
+              "9": "<redacted>",
+              "10": "<redacted>",
+              "11": "<redacted>",
+              "12": "<redacted>",
+              "13": "<redacted>",
+              "14": "<redacted>",
+              "15": "<redacted>",
+              "16": "<redacted>",
+              "17": "<redacted>",
+              "count": 17
+            }
+          },
+          {
+            "index": 4,
+            "values": {
+              "1": "SyntheticPlayer4",
+              "2": "<redacted>",
+              "3": "<redacted>",
+              "4": "<redacted>",
+              "5": "<redacted>",
+              "6": "1",
+              "7": "<redacted>",
+              "8": "<redacted>",
+              "9": "<redacted>",
+              "10": "<redacted>",
+              "11": "<redacted>",
+              "12": "<redacted>",
+              "13": "<redacted>",
+              "14": "<redacted>",
+              "15": "<redacted>",
+              "16": "<redacted>",
+              "17": "<redacted>",
+              "count": 17
+            }
+          },
+          {
+            "index": 5,
+            "values": {
+              "1": "SyntheticPlayer5",
+              "2": "<redacted>",
+              "3": "<redacted>",
+              "4": "<redacted>",
+              "5": "<redacted>",
+              "6": "0",
+              "7": "<redacted>",
+              "8": "<redacted>",
+              "9": "<redacted>",
+              "10": "<redacted>",
+              "11": "<redacted>",
+              "12": "<redacted>",
+              "13": "<redacted>",
+              "14": "<redacted>",
+              "15": "<redacted>",
+              "16": "<redacted>",
+              "17": "<redacted>",
+              "count": 17
+            }
+          },
+          {
+            "index": 6,
+            "values": {
+              "1": "SyntheticPlayer6",
+              "2": "<redacted>",
+              "3": "<redacted>",
+              "4": "<redacted>",
+              "5": "<redacted>",
+              "6": "1",
+              "7": "<redacted>",
+              "8": "<redacted>",
+              "9": "<redacted>",
+              "10": "<redacted>",
+              "11": "<redacted>",
+              "12": "<redacted>",
+              "13": "<redacted>",
+              "14": "<redacted>",
+              "15": "<redacted>",
+              "16": "<redacted>",
+              "17": "<redacted>",
+              "count": 17
+            }
+          },
+          {
+            "index": 7,
+            "values": {
+              "1": "SyntheticPlayer7",
+              "2": "<redacted>",
+              "3": "<redacted>",
+              "4": "<redacted>",
+              "5": "<redacted>",
+              "6": "1",
+              "7": "<redacted>",
+              "8": "<redacted>",
+              "9": "<redacted>",
+              "10": "<redacted>",
+              "11": "<redacted>",
+              "12": "<redacted>",
+              "13": "<redacted>",
+              "14": "<redacted>",
+              "15": "<redacted>",
+              "16": "<redacted>",
+              "17": "<redacted>",
+              "count": 17
+            }
+          },
+          {
+            "index": 8,
+            "values": {
+              "1": "SyntheticPlayer8",
+              "2": "<redacted>",
+              "3": "<redacted>",
+              "4": "<redacted>",
+              "5": "<redacted>",
+              "6": "0",
+              "7": "<redacted>",
+              "8": "<redacted>",
+              "9": "<redacted>",
+              "10": "<redacted>",
+              "11": "<redacted>",
+              "12": "<redacted>",
+              "13": "<redacted>",
+              "14": "<redacted>",
+              "15": "<redacted>",
+              "16": "<redacted>",
+              "17": "<redacted>",
+              "count": 17
+            }
+          },
+          {
+            "index": 9,
+            "values": {
+              "1": "SyntheticPlayer9",
+              "2": "<redacted>",
+              "3": "<redacted>",
+              "4": "<redacted>",
+              "5": "<redacted>",
+              "6": "0",
+              "7": "<redacted>",
+              "8": "<redacted>",
+              "9": "<redacted>",
+              "10": "<redacted>",
+              "11": "<redacted>",
+              "12": "<redacted>",
+              "13": "<redacted>",
+              "14": "<redacted>",
+              "15": "<redacted>",
+              "16": "<redacted>",
+              "17": "<redacted>",
+              "count": 17
+            }
+          },
+          {
+            "index": 10,
+            "values": {
+              "1": "SyntheticPlayer10",
+              "2": "<redacted>",
+              "3": "<redacted>",
+              "4": "<redacted>",
+              "5": "<redacted>",
+              "6": "1",
+              "7": "<redacted>",
+              "8": "<redacted>",
+              "9": "<redacted>",
+              "10": "<redacted>",
+              "11": "<redacted>",
+              "12": "<redacted>",
+              "13": "<redacted>",
+              "14": "<redacted>",
+              "15": "<redacted>",
+              "16": "<redacted>",
+              "17": "<redacted>",
+              "count": 17
+            }
+          },
+          {
+            "index": 11,
+            "values": {
+              "1": "SyntheticPlayer11",
+              "2": "<redacted>",
+              "3": "<redacted>",
+              "4": "<redacted>",
+              "5": "<redacted>",
+              "6": "0",
+              "7": "<redacted>",
+              "8": "<redacted>",
+              "9": "<redacted>",
+              "10": "<redacted>",
+              "11": "<redacted>",
+              "12": "<redacted>",
+              "13": "<redacted>",
+              "14": "<redacted>",
+              "15": "<redacted>",
+              "16": "<redacted>",
+              "17": "<redacted>",
+              "count": 17
+            }
+          },
+          {
+            "index": 12,
+            "values": {
+              "1": "SyntheticPlayer12",
+              "2": "<redacted>",
+              "3": "<redacted>",
+              "4": "<redacted>",
+              "5": "<redacted>",
+              "6": "0",
+              "7": "<redacted>",
+              "8": "<redacted>",
+              "9": "<redacted>",
+              "10": "<redacted>",
+              "11": "<redacted>",
+              "12": "<redacted>",
+              "13": "<redacted>",
+              "14": "<redacted>",
+              "15": "<redacted>",
+              "16": "<redacted>",
+              "17": "<redacted>",
+              "count": 17
+            }
+          },
+          {
+            "index": 13,
+            "values": {
+              "1": "SyntheticPlayer13",
+              "2": "<redacted>",
+              "3": "<redacted>",
+              "4": "<redacted>",
+              "5": "<redacted>",
+              "6": "0",
+              "7": "<redacted>",
+              "8": "<redacted>",
+              "9": "<redacted>",
+              "10": "<redacted>",
+              "11": "<redacted>",
+              "12": "<redacted>",
+              "13": "<redacted>",
+              "14": "<redacted>",
+              "15": "<redacted>",
+              "16": "<redacted>",
+              "17": "<redacted>",
+              "count": 17
+            }
+          },
+          {
+            "index": 14,
+            "values": {
+              "1": "SyntheticPlayer14",
+              "2": "<redacted>",
+              "3": "<redacted>",
+              "4": "<redacted>",
+              "5": "<redacted>",
+              "6": "1",
+              "7": "<redacted>",
+              "8": "<redacted>",
+              "9": "<redacted>",
+              "10": "<redacted>",
+              "11": "<redacted>",
+              "12": "<redacted>",
+              "13": "<redacted>",
+              "14": "<redacted>",
+              "15": "<redacted>",
+              "16": "<redacted>",
+              "17": "<redacted>",
+              "count": 17
+            }
+          },
+          {
+            "index": 15,
+            "values": {
+              "1": "SyntheticPlayer15",
+              "2": "<redacted>",
+              "3": "<redacted>",
+              "4": "<redacted>",
+              "5": "<redacted>",
+              "6": "0",
+              "7": "<redacted>",
+              "8": "<redacted>",
+              "9": "<redacted>",
+              "10": "<redacted>",
+              "11": "<redacted>",
+              "12": "<redacted>",
+              "13": "<redacted>",
+              "14": "<redacted>",
+              "15": "<redacted>",
+              "16": "<redacted>",
+              "17": "<redacted>",
+              "count": 17
+            }
+          },
+          {
+            "index": 16,
+            "values": {
+              "1": "SyntheticPlayer16",
+              "2": "<redacted>",
+              "3": "<redacted>",
+              "4": "<redacted>",
+              "5": "<redacted>",
+              "6": "0",
+              "7": "<redacted>",
+              "8": "<redacted>",
+              "9": "<redacted>",
+              "10": "<redacted>",
+              "11": "<redacted>",
+              "12": "<redacted>",
+              "13": "<redacted>",
+              "14": "<redacted>",
+              "15": "<redacted>",
+              "16": "<redacted>",
+              "17": "<redacted>",
+              "count": 17
+            }
+          },
+          {
+            "index": 17,
+            "values": {
+              "1": "SyntheticPlayer17",
+              "2": "<redacted>",
+              "3": "<redacted>",
+              "4": "<redacted>",
+              "5": "<redacted>",
+              "6": "0",
+              "7": "<redacted>",
+              "8": "<redacted>",
+              "9": "<redacted>",
+              "10": "<redacted>",
+              "11": "<redacted>",
+              "12": "<redacted>",
+              "13": "<redacted>",
+              "14": "<redacted>",
+              "15": "<redacted>",
+              "16": "<redacted>",
+              "17": "<redacted>",
+              "count": 17
+            }
+          },
+          {
+            "index": 18,
+            "values": {
+              "1": "SyntheticPlayer18",
+              "2": "<redacted>",
+              "3": "<redacted>",
+              "4": "<redacted>",
+              "5": "<redacted>",
+              "6": "0",
+              "7": "<redacted>",
+              "8": "<redacted>",
+              "9": "<redacted>",
+              "10": "<redacted>",
+              "11": "<redacted>",
+              "12": "<redacted>",
+              "13": "<redacted>",
+              "14": "<redacted>",
+              "15": "<redacted>",
+              "16": "<redacted>",
+              "17": "<redacted>",
+              "count": 17
+            }
+          },
+          {
+            "index": 19,
+            "values": {
+              "1": "SyntheticPlayer19",
+              "2": "<redacted>",
+              "3": "<redacted>",
+              "4": "<redacted>",
+              "5": "<redacted>",
+              "6": "0",
+              "7": "<redacted>",
+              "8": "<redacted>",
+              "9": "<redacted>",
+              "10": "<redacted>",
+              "11": "<redacted>",
+              "12": "<redacted>",
+              "13": "<redacted>",
+              "14": "<redacted>",
+              "15": "<redacted>",
+              "16": "<redacted>",
+              "17": "<redacted>",
+              "count": 17
+            }
+          },
+          {
+            "index": 20,
+            "values": {
+              "1": "SyntheticPlayer20",
+              "2": "<redacted>",
+              "3": "<redacted>",
+              "4": "<redacted>",
+              "5": "<redacted>",
+              "6": "0",
+              "7": "<redacted>",
+              "8": "<redacted>",
+              "9": "<redacted>",
+              "10": "<redacted>",
+              "11": "<redacted>",
+              "12": "<redacted>",
+              "13": "<redacted>",
+              "14": "<redacted>",
+              "15": "<redacted>",
+              "16": "<redacted>",
+              "17": "<redacted>",
+              "count": 17
+            }
+          },
+          {
+            "index": 21,
+            "values": {
+              "1": "SyntheticPlayer21",
+              "2": "<redacted>",
+              "3": "<redacted>",
+              "4": "<redacted>",
+              "5": "<redacted>",
+              "6": "1",
+              "7": "<redacted>",
+              "8": "<redacted>",
+              "9": "<redacted>",
+              "10": "<redacted>",
+              "11": "<redacted>",
+              "12": "<redacted>",
+              "13": "<redacted>",
+              "14": "<redacted>",
+              "15": "<redacted>",
+              "16": "<redacted>",
+              "17": "<redacted>",
+              "count": 17
+            }
+          },
+          {
+            "index": 22,
+            "values": {
+              "1": "SyntheticPlayer22",
+              "2": "<redacted>",
+              "3": "<redacted>",
+              "4": "<redacted>",
+              "5": "<redacted>",
+              "6": "1",
+              "7": "<redacted>",
+              "8": "<redacted>",
+              "9": "<redacted>",
+              "10": "<redacted>",
+              "11": "<redacted>",
+              "12": "<redacted>",
+              "13": "<redacted>",
+              "14": "<redacted>",
+              "15": "<redacted>",
+              "16": "<redacted>",
+              "17": "<redacted>",
+              "count": 17
+            }
+          },
+          {
+            "index": 23,
+            "values": {
+              "1": "SyntheticPlayer23",
+              "2": "<redacted>",
+              "3": "<redacted>",
+              "4": "<redacted>",
+              "5": "<redacted>",
+              "6": "1",
+              "7": "<redacted>",
+              "8": "<redacted>",
+              "9": "<redacted>",
+              "10": "<redacted>",
+              "11": "<redacted>",
+              "12": "<redacted>",
+              "13": "<redacted>",
+              "14": "<redacted>",
+              "15": "<redacted>",
+              "16": "<redacted>",
+              "17": "<redacted>",
+              "count": 17
+            }
+          },
+          {
+            "index": 24,
+            "values": {
+              "1": "SyntheticPlayer24",
+              "2": "<redacted>",
+              "3": "<redacted>",
+              "4": "<redacted>",
+              "5": "<redacted>",
+              "6": "1",
+              "7": "<redacted>",
+              "8": "<redacted>",
+              "9": "<redacted>",
+              "10": "<redacted>",
+              "11": "<redacted>",
+              "12": "<redacted>",
+              "13": "<redacted>",
+              "14": "<redacted>",
+              "15": "<redacted>",
+              "16": "<redacted>",
+              "17": "<redacted>",
+              "count": 17
+            }
+          },
+          {
+            "index": 25,
+            "values": {
+              "1": "SyntheticPlayer25",
+              "2": "<redacted>",
+              "3": "<redacted>",
+              "4": "<redacted>",
+              "5": "<redacted>",
+              "6": "1",
+              "7": "<redacted>",
+              "8": "<redacted>",
+              "9": "<redacted>",
+              "10": "<redacted>",
+              "11": "<redacted>",
+              "12": "<redacted>",
+              "13": "<redacted>",
+              "14": "<redacted>",
+              "15": "<redacted>",
+              "16": "<redacted>",
+              "17": "<redacted>",
+              "count": 17
+            }
+          },
+          {
+            "index": 26,
+            "values": {
+              "1": "SyntheticPlayer26",
+              "2": "<redacted>",
+              "3": "<redacted>",
+              "4": "<redacted>",
+              "5": "<redacted>",
+              "6": "1",
+              "7": "<redacted>",
+              "8": "<redacted>",
+              "9": "<redacted>",
+              "10": "<redacted>",
+              "11": "<redacted>",
+              "12": "<redacted>",
+              "13": "<redacted>",
+              "14": "<redacted>",
+              "15": "<redacted>",
+              "16": "<redacted>",
+              "17": "<redacted>",
+              "count": 17
+            }
+          },
+          {
+            "index": 27,
+            "values": {
+              "1": "SyntheticPlayer27",
+              "2": "<redacted>",
+              "3": "<redacted>",
+              "4": "<redacted>",
+              "5": "<redacted>",
+              "6": "1",
+              "7": "<redacted>",
+              "8": "<redacted>",
+              "9": "<redacted>",
+              "10": "<redacted>",
+              "11": "<redacted>",
+              "12": "<redacted>",
+              "13": "<redacted>",
+              "14": "<redacted>",
+              "15": "<redacted>",
+              "16": "<redacted>",
+              "17": "<redacted>",
+              "count": 17
+            }
+          },
+          {
+            "index": 28,
+            "values": {
+              "1": "SyntheticPlayer28",
+              "2": "<redacted>",
+              "3": "<redacted>",
+              "4": "<redacted>",
+              "5": "<redacted>",
+              "6": "1",
+              "7": "<redacted>",
+              "8": "<redacted>",
+              "9": "<redacted>",
+              "10": "<redacted>",
+              "11": "<redacted>",
+              "12": "<redacted>",
+              "13": "<redacted>",
+              "14": "<redacted>",
+              "15": "<redacted>",
+              "16": "<redacted>",
+              "17": "<redacted>",
+              "count": 17
+            }
+          },
+          {
+            "index": 29,
+            "values": {
+              "1": "SyntheticPlayer29",
+              "2": "<redacted>",
+              "3": "<redacted>",
+              "4": "<redacted>",
+              "5": "<redacted>",
+              "6": "0",
+              "7": "<redacted>",
+              "8": "<redacted>",
+              "9": "<redacted>",
+              "10": "<redacted>",
+              "11": "<redacted>",
+              "12": "<redacted>",
+              "13": "<redacted>",
+              "14": "<redacted>",
+              "15": "<redacted>",
+              "16": "<redacted>",
+              "17": "<redacted>",
+              "count": 17
+            }
+          },
+          {
+            "index": 30,
+            "values": {
+              "1": "SyntheticPlayer30",
+              "2": "<redacted>",
+              "3": "<redacted>",
+              "4": "<redacted>",
+              "5": "<redacted>",
+              "6": "1",
+              "7": "<redacted>",
+              "8": "<redacted>",
+              "9": "<redacted>",
+              "10": "<redacted>",
+              "11": "<redacted>",
+              "12": "<redacted>",
+              "13": "<redacted>",
+              "14": "<redacted>",
+              "15": "<redacted>",
+              "16": "<redacted>",
+              "17": "<redacted>",
+              "count": 17
+            }
+          }
+        ]
+      }
+    },
+    {
+      "kind": "capture_marker",
+      "payload": {
+        "phase": "Automatic 5-minute capture"
+      }
+    },
+    {
+      "kind": "event",
+      "payload": {
+        "name": "PVP_MATCH_COMPLETE"
+      }
+    },
+    {
+      "kind": "environment",
+      "payload": {
+        "build": {
+          "1": "1.60.1",
+          "2": "70338",
+          "4": "16001",
+          "count": 6
+        },
+        "instance": {
+          "3": "0",
+          "5": "15",
+          "6": "0",
+          "8": "2997",
+          "9": "0",
+          "count": 11,
+          "1": "Darkspear Islands",
+          "2": "pvp"
+        }
+      }
+    },
+    {
+      "kind": "scoreboard",
+      "payload": {
+        "count": 30,
+        "winner": {
+          "1": "1",
+          "count": 1
+        },
+        "rows": [
+          {
+            "index": 1,
+            "values": {
+              "1": "SyntheticPlayer1",
+              "2": "8",
+              "3": "63",
+              "4": "2",
+              "5": "618",
+              "6": "0",
+              "7": "<redacted>",
+              "8": "<redacted>",
+              "9": "<redacted>",
+              "10": "31097",
+              "11": "384",
+              "12": "0",
+              "13": "0",
+              "14": "<redacted>",
+              "15": "0",
+              "16": "<redacted>",
+              "17": "1",
+              "count": 17
+            }
+          },
+          {
+            "index": 2,
+            "values": {
+              "1": "SyntheticPlayer2",
+              "2": "11",
+              "3": "35",
+              "4": "5",
+              "5": "558",
+              "6": "1",
+              "7": "<redacted>",
+              "8": "<redacted>",
+              "9": "<redacted>",
+              "10": "30457",
+              "11": "0",
+              "12": "0",
+              "13": "0",
+              "14": "<redacted>",
+              "15": "0",
+              "16": "<redacted>",
+              "17": "1",
+              "count": 17
+            }
+          },
+          {
+            "index": 3,
+            "values": {
+              "1": "SyntheticPlayer3",
+              "2": "8",
+              "3": "52",
+              "4": "1",
+              "5": "604",
+              "6": "0",
+              "7": "<redacted>",
+              "8": "<redacted>",
+              "9": "<redacted>",
+              "10": "21020",
+              "11": "1698",
+              "12": "0",
+              "13": "0",
+              "14": "<redacted>",
+              "15": "0",
+              "16": "<redacted>",
+              "17": "1",
+              "count": 17
+            }
+          },
+          {
+            "index": 4,
+            "values": {
+              "1": "SyntheticPlayer4",
+              "2": "7",
+              "3": "38",
+              "4": "8",
+              "5": "554",
+              "6": "1",
+              "7": "<redacted>",
+              "8": "<redacted>",
+              "9": "<redacted>",
+              "10": "16228",
+              "11": "3147",
+              "12": "0",
+              "13": "0",
+              "14": "<redacted>",
+              "15": "0",
+              "16": "<redacted>",
+              "17": "1",
+              "count": 17
+            }
+          },
+          {
+            "index": 5,
+            "values": {
+              "1": "SyntheticPlayer5",
+              "2": "7",
+              "3": "53",
+              "4": "6",
+              "5": "611",
+              "6": "0",
+              "7": "<redacted>",
+              "8": "<redacted>",
+              "9": "<redacted>",
+              "10": "16173",
+              "11": "1121",
+              "12": "0",
+              "13": "0",
+              "14": "<redacted>",
+              "15": "0",
+              "16": "<redacted>",
+              "17": "1",
+              "count": 17
+            }
+          },
+          {
+            "index": 6,
+            "values": {
+              "1": "SyntheticPlayer6",
+              "2": "11",
+              "3": "42",
+              "4": "5",
+              "5": "560",
+              "6": "1",
+              "7": "<redacted>",
+              "8": "<redacted>",
+              "9": "<redacted>",
+              "10": "15437",
+              "11": "0",
+              "12": "0",
+              "13": "0",
+              "14": "<redacted>",
+              "15": "0",
+              "16": "<redacted>",
+              "17": "1",
+              "count": 17
+            }
+          },
+          {
+            "index": 7,
+            "values": {
+              "1": "SyntheticPlayer7",
+              "2": "5",
+              "3": "34",
+              "4": "6",
+              "5": "544",
+              "6": "1",
+              "7": "<redacted>",
+              "8": "<redacted>",
+              "9": "<redacted>",
+              "10": "14124",
+              "11": "940",
+              "12": "0",
+              "13": "0",
+              "14": "<redacted>",
+              "15": "0",
+              "16": "<redacted>",
+              "17": "1",
+              "count": 17
+            }
+          },
+          {
+            "index": 8,
+            "values": {
+              "1": "SyntheticPlayer8",
+              "2": "7",
+              "3": "45",
+              "4": "9",
+              "5": "604",
+              "6": "0",
+              "7": "<redacted>",
+              "8": "<redacted>",
+              "9": "<redacted>",
+              "10": "13641",
+              "11": "338",
+              "12": "0",
+              "13": "0",
+              "14": "<redacted>",
+              "15": "0",
+              "16": "<redacted>",
+              "17": "1",
+              "count": 17
+            }
+          },
+          {
+            "index": 9,
+            "values": {
+              "1": "SyntheticPlayer9",
+              "2": "10",
+              "3": "53",
+              "4": "5",
+              "5": "607",
+              "6": "0",
+              "7": "<redacted>",
+              "8": "<redacted>",
+              "9": "<redacted>",
+              "10": "12733",
+              "11": "0",
+              "12": "0",
+              "13": "0",
+              "14": "<redacted>",
+              "15": "0",
+              "16": "<redacted>",
+              "17": "1",
+              "count": 17
+            }
+          },
+          {
+            "index": 10,
+            "values": {
+              "1": "SyntheticPlayer10",
+              "2": "2",
+              "3": "60",
+              "4": "2",
+              "5": "614",
+              "6": "0",
+              "7": "<redacted>",
+              "8": "<redacted>",
+              "9": "<redacted>",
+              "10": "11670",
+              "11": "5934",
+              "12": "0",
+              "13": "0",
+              "14": "<redacted>",
+              "15": "0",
+              "16": "<redacted>",
+              "17": "1",
+              "count": 17
+            }
+          },
+          {
+            "index": 11,
+            "values": {
+              "1": "SyntheticPlayer11",
+              "2": "7",
+              "3": "58",
+              "4": "3",
+              "5": "615",
+              "6": "0",
+              "7": "<redacted>",
+              "8": "<redacted>",
+              "9": "<redacted>",
+              "10": "11581",
+              "11": "571",
+              "12": "0",
+              "13": "0",
+              "14": "<redacted>",
+              "15": "0",
+              "16": "<redacted>",
+              "17": "1",
+              "count": 17
+            }
+          },
+          {
+            "index": 12,
+            "values": {
+              "1": "SyntheticPlayer12",
+              "2": "5",
+              "3": "55",
+              "4": "5",
+              "5": "614",
+              "6": "0",
+              "7": "<redacted>",
+              "8": "<redacted>",
+              "9": "<redacted>",
+              "10": "10991",
+              "11": "282",
+              "12": "0",
+              "13": "0",
+              "14": "<redacted>",
+              "15": "0",
+              "16": "<redacted>",
+              "17": "1",
+              "count": 17
+            }
+          },
+          {
+            "index": 13,
+            "values": {
+              "1": "SyntheticPlayer13",
+              "2": "5",
+              "3": "43",
+              "4": "4",
+              "5": "564",
+              "6": "1",
+              "7": "<redacted>",
+              "8": "<redacted>",
+              "9": "<redacted>",
+              "10": "10977",
+              "11": "3322",
+              "12": "0",
+              "13": "0",
+              "14": "<redacted>",
+              "15": "0",
+              "16": "<redacted>",
+              "17": "1",
+              "count": 17
+            }
+          },
+          {
+            "index": 14,
+            "values": {
+              "1": "SyntheticPlayer14",
+              "2": "6",
+              "3": "38",
+              "4": "6",
+              "5": "594",
+              "6": "0",
+              "7": "<redacted>",
+              "8": "<redacted>",
+              "9": "<redacted>",
+              "10": "10914",
+              "11": "2413",
+              "12": "0",
+              "13": "0",
+              "14": "<redacted>",
+              "15": "0",
+              "16": "<redacted>",
+              "17": "1",
+              "count": 17
+            }
+          },
+          {
+            "index": 15,
+            "values": {
+              "1": "SyntheticPlayer15",
+              "2": "1",
+              "3": "43",
+              "4": "3",
+              "5": "594",
+              "6": "0",
+              "7": "<redacted>",
+              "8": "<redacted>",
+              "9": "<redacted>",
+              "10": "10776",
+              "11": "0",
+              "12": "0",
+              "13": "0",
+              "14": "<redacted>",
+              "15": "0",
+              "16": "<redacted>",
+              "17": "1",
+              "count": 17
+            }
+          },
+          {
+            "index": 16,
+            "values": {
+              "1": "SyntheticPlayer16",
+              "2": "2",
+              "3": "40",
+              "4": "6",
+              "5": "602",
+              "6": "0",
+              "7": "<redacted>",
+              "8": "<redacted>",
+              "9": "<redacted>",
+              "10": "10547",
+              "11": "2183",
+              "12": "0",
+              "13": "0",
+              "14": "<redacted>",
+              "15": "0",
+              "16": "<redacted>",
+              "17": "1",
+              "count": 17
+            }
+          },
+          {
+            "index": 17,
+            "values": {
+              "1": "SyntheticPlayer17",
+              "2": "3",
+              "3": "39",
+              "4": "5",
+              "5": "556",
+              "6": "1",
+              "7": "<redacted>",
+              "8": "<redacted>",
+              "9": "<redacted>",
+              "10": "9341",
+              "11": "2465",
+              "12": "0",
+              "13": "0",
+              "14": "<redacted>",
+              "15": "0",
+              "16": "<redacted>",
+              "17": "1",
+              "count": 17
+            }
+          },
+          {
+            "index": 18,
+            "values": {
+              "1": "SyntheticPlayer18",
+              "2": "4",
+              "3": "49",
+              "4": "6",
+              "5": "613",
+              "6": "0",
+              "7": "<redacted>",
+              "8": "<redacted>",
+              "9": "<redacted>",
+              "10": "9208",
+              "11": "592",
+              "12": "0",
+              "13": "0",
+              "14": "<redacted>",
+              "15": "0",
+              "16": "<redacted>",
+              "17": "1",
+              "count": 17
+            }
+          },
+          {
+            "index": 19,
+            "values": {
+              "1": "SyntheticPlayer19",
+              "2": "5",
+              "3": "55",
+              "4": "3",
+              "5": "615",
+              "6": "0",
+              "7": "<redacted>",
+              "8": "<redacted>",
+              "9": "<redacted>",
+              "10": "9077",
+              "11": "398",
+              "12": "0",
+              "13": "0",
+              "14": "<redacted>",
+              "15": "0",
+              "16": "<redacted>",
+              "17": "1",
+              "count": 17
+            }
+          },
+          {
+            "index": 20,
+            "values": {
+              "1": "SyntheticPlayer20",
+              "2": "2",
+              "3": "37",
+              "4": "1",
+              "5": "551",
+              "6": "1",
+              "7": "<redacted>",
+              "8": "<redacted>",
+              "9": "<redacted>",
+              "10": "7472",
+              "11": "1322",
+              "12": "0",
+              "13": "0",
+              "14": "<redacted>",
+              "15": "0",
+              "16": "<redacted>",
+              "17": "1",
+              "count": 17
+            }
+          },
+          {
+            "index": 21,
+            "values": {
+              "1": "SyntheticPlayer21",
+              "2": "1",
+              "3": "25",
+              "4": "6",
+              "5": "536",
+              "6": "1",
+              "7": "<redacted>",
+              "8": "<redacted>",
+              "9": "<redacted>",
+              "10": "7204",
+              "11": "2770",
+              "12": "0",
+              "13": "0",
+              "14": "<redacted>",
+              "15": "0",
+              "16": "<redacted>",
+              "17": "1",
+              "count": 17
+            }
+          },
+          {
+            "index": 22,
+            "values": {
+              "1": "SyntheticPlayer22",
+              "2": "3",
+              "3": "38",
+              "4": "6",
+              "5": "558",
+              "6": "1",
+              "7": "<redacted>",
+              "8": "<redacted>",
+              "9": "<redacted>",
+              "10": "7183",
+              "11": "0",
+              "12": "0",
+              "13": "0",
+              "14": "<redacted>",
+              "15": "0",
+              "16": "<redacted>",
+              "17": "1",
+              "count": 17
+            }
+          },
+          {
+            "index": 23,
+            "values": {
+              "1": "SyntheticPlayer23",
+              "2": "1",
+              "3": "47",
+              "4": "3",
+              "5": "606",
+              "6": "0",
+              "7": "<redacted>",
+              "8": "<redacted>",
+              "9": "<redacted>",
+              "10": "7114",
+              "11": "3324",
+              "12": "0",
+              "13": "0",
+              "14": "<redacted>",
+              "15": "0",
+              "16": "<redacted>",
+              "17": "1",
+              "count": 17
+            }
+          },
+          {
+            "index": 24,
+            "values": {
+              "1": "SyntheticPlayer24",
+              "2": "1",
+              "3": "24",
+              "4": "4",
+              "5": "539",
+              "6": "1",
+              "7": "<redacted>",
+              "8": "<redacted>",
+              "9": "<redacted>",
+              "10": "5457",
+              "11": "10468",
+              "12": "0",
+              "13": "0",
+              "14": "<redacted>",
+              "15": "0",
+              "16": "<redacted>",
+              "17": "1",
+              "count": 17
+            }
+          },
+          {
+            "index": 25,
+            "values": {
+              "1": "SyntheticPlayer25",
+              "2": "2",
+              "3": "10",
+              "4": "1",
+              "5": "317",
+              "6": "1",
+              "7": "<redacted>",
+              "8": "<redacted>",
+              "9": "<redacted>",
+              "10": "4587",
+              "11": "622",
+              "12": "0",
+              "13": "0",
+              "14": "<redacted>",
+              "15": "0",
+              "16": "<redacted>",
+              "17": "1",
+              "count": 17
+            }
+          },
+          {
+            "index": 26,
+            "values": {
+              "1": "SyntheticPlayer26",
+              "2": "2",
+              "3": "33",
+              "4": "2",
+              "5": "545",
+              "6": "1",
+              "7": "<redacted>",
+              "8": "<redacted>",
+              "9": "<redacted>",
+              "10": "4534",
+              "11": "13302",
+              "12": "0",
+              "13": "0",
+              "14": "<redacted>",
+              "15": "0",
+              "16": "<redacted>",
+              "17": "1",
+              "count": 17
+            }
+          },
+          {
+            "index": 27,
+            "values": {
+              "1": "SyntheticPlayer27",
+              "2": "4",
+              "3": "32",
+              "4": "5",
+              "5": "545",
+              "6": "1",
+              "7": "<redacted>",
+              "8": "<redacted>",
+              "9": "<redacted>",
+              "10": "4156",
+              "11": "14296",
+              "12": "0",
+              "13": "0",
+              "14": "<redacted>",
+              "15": "0",
+              "16": "<redacted>",
+              "17": "1",
+              "count": 17
+            }
+          },
+          {
+            "index": 28,
+            "values": {
+              "1": "SyntheticPlayer28",
+              "2": "1",
+              "3": "26",
+              "4": "9",
+              "5": "543",
+              "6": "1",
+              "7": "<redacted>",
+              "8": "<redacted>",
+              "9": "<redacted>",
+              "10": "3833",
+              "11": "461",
+              "12": "0",
+              "13": "0",
+              "14": "<redacted>",
+              "15": "0",
+              "16": "<redacted>",
+              "17": "1",
+              "count": 17
+            }
+          },
+          {
+            "index": 29,
+            "values": {
+              "1": "SyntheticPlayer29",
+              "2": "2",
+              "3": "30",
+              "4": "0",
+              "5": "540",
+              "6": "1",
+              "7": "<redacted>",
+              "8": "<redacted>",
+              "9": "<redacted>",
+              "10": "3731",
+              "11": "2652",
+              "12": "0",
+              "13": "0",
+              "14": "<redacted>",
+              "15": "0",
+              "16": "<redacted>",
+              "17": "1",
+              "count": 17
+            }
+          },
+          {
+            "index": 30,
+            "values": {
+              "1": "SyntheticPlayer30",
+              "2": "0",
+              "3": "54",
+              "4": "3",
+              "5": "606",
+              "6": "0",
+              "7": "<redacted>",
+              "8": "<redacted>",
+              "9": "<redacted>",
+              "10": "1545",
+              "11": "16205",
+              "12": "0",
+              "13": "0",
+              "14": "<redacted>",
+              "15": "0",
+              "16": "<redacted>",
+              "17": "1",
+              "count": 17
+            }
+          }
+        ]
+      }
+    },
+    {
+      "kind": "capture_marker",
+      "payload": {
+        "phase": "Automatic final result"
+      }
+    },
+    {
+      "kind": "event",
+      "payload": {
+        "name": "PLAYER_LOGOUT"
+      }
+    }
+  ]
+}

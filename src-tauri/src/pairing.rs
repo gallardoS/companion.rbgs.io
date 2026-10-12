@@ -18,6 +18,7 @@ struct Pending {
     next_poll: Instant,
     issued_token: Option<String>,
     requested_scope: String,
+    approval_url: String,
 }
 
 #[derive(Serialize)]
@@ -25,6 +26,7 @@ struct Pending {
 pub struct PairingView {
     code: String,
     expires_at: String,
+    approval_url: String,
 }
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -33,6 +35,7 @@ struct PairingResponse {
     polling_secret: String,
     expires_at: String,
     interval_seconds: u64,
+    approval_secret: String,
 }
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -115,13 +118,13 @@ pub async fn start_pairing(
     capture_permissions: Option<bool>,
 ) -> Result<PairingView, String> {
     if name.trim().is_empty() || name.chars().count() > 80 || name.chars().any(char::is_control) {
-        return Err("Use a device name of 1â€“80 characters".into());
+        return Err("Use a device name of 1–80 characters".into());
     }
     let mut pending = state.0.lock().await;
     if pending.as_ref().is_some_and(|p| p.issued_token.is_some()) {
         return Err("Finish saving the issued credential before generating another code".into());
     }
-    let requested_scope = if capture_permissions.unwrap_or(false) {
+    let requested_scope = if capture_permissions.unwrap_or(true) {
         CAPTURE_SCOPE
     } else {
         SCOPE
@@ -140,21 +143,29 @@ pub async fn start_pairing(
         .await
         .map_err(|_| "Invalid pairing response")?;
     if !valid_secret(&result.polling_secret)
+        || !valid_secret(&result.approval_secret)
         || result.code.len() != 10
         || result.interval_seconds != 5
     {
         return Err("Invalid pairing response".into());
     }
+    let approval_url = format!(
+        "{}/settings#companion-link={}",
+        web_origin(),
+        result.approval_secret
+    );
     *pending = Some(Pending {
         secret: result.polling_secret,
         deadline: Instant::now() + Duration::from_secs(300),
         next_poll: Instant::now(),
         issued_token: None,
         requested_scope: requested_scope.into(),
+        approval_url: approval_url.clone(),
     });
     Ok(PairingView {
         code: result.code,
         expires_at: result.expires_at,
+        approval_url,
     })
 }
 
@@ -210,6 +221,44 @@ pub(crate) async fn advance_pairing(state: &PairingState) -> Result<String, Stri
         .map_err(|_| "Could not save the credential in Windows. Retry finishing the connection.")?;
     *slot = None;
     Ok("PAIRED".into())
+}
+
+fn web_origin() -> &'static str {
+    if origin() == "http://localhost:8080" {
+        "http://localhost:5173"
+    } else {
+        "https://rbgs.io"
+    }
+}
+#[tauri::command]
+pub async fn open_pairing_browser(
+    app: tauri::AppHandle,
+    state: tauri::State<'_, PairingState>,
+) -> Result<(), String> {
+    use tauri_plugin_opener::OpenerExt;
+    let slot = state.0.lock().await;
+    let pending = slot
+        .as_ref()
+        .filter(|p| Instant::now() < p.deadline)
+        .ok_or("Generate a connection request first")?;
+    app.opener()
+        .open_url(&pending.approval_url, None::<&str>)
+        .map_err(|_| {
+            "Could not open the browser. Use the manual code option in web Settings.".into()
+        })
+}
+pub(crate) async fn send_heartbeat() -> Result<(), String> {
+    let token = stored_token()?;
+    let response = client()?
+        .post(format!("{}/api/v1/companion/heartbeat", origin()))
+        .bearer_auth(&token)
+        .send()
+        .await
+        .map_err(|_| "Heartbeat unavailable")?;
+    if !response.status().is_success() {
+        return Err(api_error(response.status()));
+    }
+    Ok(())
 }
 
 #[tauri::command]
@@ -284,6 +333,7 @@ mod tests {
                 next_poll: Instant::now(),
                 issued_token: None,
                 requested_scope: CAPTURE_SCOPE.into(),
+                approval_url: "https://rbgs.io/settings#companion-link=fixture".into(),
             })));
             assert!(
                 advance_pairing(&state)

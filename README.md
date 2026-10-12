@@ -14,7 +14,7 @@ npm run tauri -- dev
 
 The API override is read at compile time and accepted only in debug builds. Release builds use `https://api.rbgs.io`.
 
-Generate a pairing code and approve it in web Settings while signed in. The companion polls every five seconds and stores the issued credential. Capture permissions require a separate explicit approval. Revoke devices in web Settings.
+Choose **Connect account** to open web Settings in the default browser. Check the PC, account and requested permissions, then approve once. Rust completes the exchange and stores the credential. **Approve in browser** reopens the same five-minute request; manual code entry remains available. Revoke devices in web Settings.
 
 ## Verification and build
 
@@ -64,3 +64,11 @@ After `/reload` or logout, terminal captures bound to an own assignment are uplo
 SQLite schema 2 migrates the existing inbox and freezes the exact canonical HTTP body and SHA-256 digest before sending. Restarts and retries reuse those bytes. Receipt recovery runs before submission. **Received by server** requires matching assignment/capture IDs, revision, digest and durable-storage confirmation. Conflicts, damaged data and previous snapshots remain preserved. Issuances and transport records are bounded to 100 each.
 
 Controlled reports always go to review. A server receipt confirms storage; it does not establish account ownership, verified match results or rating.
+
+## Presence and browser launch
+
+Rust sends an authenticated heartbeat approximately every 15 seconds, independently of a minimized or suspended webview. Pending browser approvals also continue in the native loop. The backend marks the selected device disconnected when its last signal is older than 45 seconds. Revocation and expiry block access. A heartbeat confirms device connectivity, not game participation or eligibility.
+
+Browser pairing uses a separate temporary approval secret; the polling secret and native credential never enter the browser. Local debug builds open `http://localhost:5173/settings`; release builds open `https://rbgs.io/settings`. The web asks for explicit approval of the account and requested permissions.
+
+**Open companion** in the web uses `rbgs-companion://open`. The installed NSIS package registers the scheme; debug Windows builds register it on startup. Start the companion once before testing the local web button. A single instance opens or focuses its window. Launch links accept no credentials, server destinations or commands. If the browser cannot open the link, start the application from Windows.

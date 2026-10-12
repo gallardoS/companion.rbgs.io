@@ -5,7 +5,11 @@
   "type": "module",
   "engines": { "node": ">=22.12.0" },
   "scripts": {
-    "dev": "vite",
+    "dev": "node tools/dev-environment.mjs local",
+    "prod": "node tools/dev-environment.mjs production",
+    "ui:dev": "vite",
+    "dev:local": "node tools/dev-environment.mjs local",
+    "dev:prod": "node tools/dev-environment.mjs production",
     "build": "tsc --noEmit && vite build",
     "tauri": "tauri"
   },

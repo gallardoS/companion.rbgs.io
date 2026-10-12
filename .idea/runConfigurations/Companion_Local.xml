@@ -1,0 +1,12 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="Companion Local" type="CargoCommandRunConfiguration" factoryName="Cargo Command">
+    <option name="command" value="run --package rbgs-companion --bin rbgs-companion" />
+    <option name="workingDirectory" value="file://$PROJECT_DIR$/src-tauri" />
+    <option name="emulateTerminal" value="true" />
+    <option name="channel" value="DEFAULT" />
+    <envs>
+      <env name="RBGS_COMPANION_API_ORIGIN" value="http://localhost:8080" />
+    </envs>
+    <method v="2" />
+  </configuration>
+</component>

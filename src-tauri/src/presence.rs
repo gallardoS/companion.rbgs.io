@@ -12,6 +12,8 @@ fn show(app: &tauri::AppHandle) {
     }
 }
 pub(crate) fn setup(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
+    // Freeze the launch environment before any pairing, heartbeat or inbox work.
+    crate::pairing::client().map_err(std::io::Error::other)?;
     #[cfg(all(debug_assertions, windows))]
     if app.deep_link().register_all().is_err() {
         eprintln!("Launch link registration unavailable; start the companion from Windows.");

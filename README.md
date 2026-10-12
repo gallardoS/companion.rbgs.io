@@ -8,11 +8,14 @@ Requires Node.js >= 22.12, Rust >= 1.90, Microsoft C++ Build Tools and WebView2.
 
 ```powershell
 npm ci
-$env:RBGS_COMPANION_API_ORIGIN = "http://localhost:8080"
-npm run tauri -- dev
+npm run dev
 ```
 
-The API override is read at compile time and accepted only in debug builds. Release builds use `https://api.rbgs.io`.
+Ensure Cargo is on PATH. Use `npm run dev` for the local API at `http://localhost:8080` and approval web at `http://localhost:5173`. Use `npm run prod` for `https://api.rbgs.io` and `https://rbgs.io`. Both commands start Vite on port 1420 and open the development companion; do not start a second Vite server separately.
+
+Close the running companion and stop the previous development command before switching environments. Credentials and saved capture transport remain separate for each API origin, so pair once per environment.
+
+Debug executables read `RBGS_COMPANION_API_ORIGIN` at process startup. Accepted values are `http://localhost:8080` and `https://api.rbgs.io`; production is the default when unset. Changing this variable requires restarting, not recompiling. Release builds always connect to production. Use `npm run ui:dev` to start only the desktop interface when launching the native application separately from an IDE.
 
 Choose **Connect account** to open web Settings in the default browser. Check the PC, account and requested permissions, then approve once. Rust completes the exchange and stores the credential. **Approve in browser** reopens the same five-minute request; manual code entry remains available. Revoke devices in web Settings.
 

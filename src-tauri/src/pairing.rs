@@ -1,4 +1,5 @@
 use serde::{Deserialize, Serialize};
+use std::sync::OnceLock;
 use std::time::{Duration, Instant};
 use tokio::sync::Mutex;
 
@@ -57,18 +58,34 @@ pub struct Connection {
     pub(crate) credential_fingerprint: String,
 }
 
-pub(crate) fn origin() -> &'static str {
-    // Build-time local override is permitted only in debug builds. Web content cannot select a token destination.
-    if cfg!(debug_assertions) {
-        option_env!("RBGS_COMPANION_API_ORIGIN").unwrap_or("https://api.rbgs.io")
+fn configured_origin(debug: bool, value: Option<&str>) -> String {
+    if debug {
+        value.unwrap_or("https://api.rbgs.io").into()
     } else {
-        "https://api.rbgs.io"
+        "https://api.rbgs.io".into()
     }
 }
+fn allowed_origin(value: &str, debug: bool) -> bool {
+    value == "https://api.rbgs.io" || (debug && value == "http://localhost:8080")
+}
+pub(crate) fn origin() -> &'static str {
+    // Native launch configuration is frozen for this process; web content cannot change it.
+    static ORIGIN: OnceLock<String> = OnceLock::new();
+    ORIGIN.get_or_init(|| {
+        let value = if cfg!(debug_assertions) {
+            match std::env::var("RBGS_COMPANION_API_ORIGIN") {
+                Ok(value) => Some(value),
+                Err(std::env::VarError::NotPresent) => None,
+                Err(std::env::VarError::NotUnicode(_)) => Some(String::new()),
+            }
+        } else {
+            None
+        };
+        configured_origin(cfg!(debug_assertions), value.as_deref())
+    })
+}
 pub(crate) fn client() -> Result<reqwest::Client, String> {
-    let valid = origin() == "https://api.rbgs.io"
-        || (cfg!(debug_assertions) && origin() == "http://localhost:8080");
-    if !valid {
+    if !allowed_origin(origin(), cfg!(debug_assertions)) {
         return Err("Unsupported API origin".into());
     }
     reqwest::Client::builder()
@@ -318,6 +335,65 @@ pub(crate) async fn verify_token(token: &str) -> Result<Connection, String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn environment_defaults_release_policy_and_destination_allowlist() {
+        assert_eq!(configured_origin(true, None), "https://api.rbgs.io");
+        assert_eq!(
+            configured_origin(false, Some("http://localhost:8080")),
+            "https://api.rbgs.io"
+        );
+        assert_eq!(
+            configured_origin(false, Some("https://untrusted.invalid")),
+            "https://api.rbgs.io"
+        );
+        assert!(allowed_origin("https://api.rbgs.io", false));
+        assert!(allowed_origin("http://localhost:8080", true));
+        assert!(!allowed_origin("http://localhost:8080", false));
+        for value in [
+            "",
+            "http://localhost:5173",
+            "https://untrusted.invalid",
+            "https://api.rbgs.io/",
+            "https://api.rbgs.io@untrusted.invalid",
+        ] {
+            assert!(!allowed_origin(value, true));
+        }
+    }
+    #[test]
+    fn same_binary_uses_the_environment_of_each_launch() {
+        const CHILD: &str = "RBGS_TEST_ENVIRONMENT_CHILD";
+        if std::env::var_os(CHILD).is_some() {
+            let value = std::env::var("RBGS_COMPANION_API_ORIGIN").unwrap();
+            let expected = configured_origin(cfg!(debug_assertions), Some(&value));
+            assert_eq!(origin(), expected);
+            assert_eq!(
+                web_origin(),
+                if expected == "http://localhost:8080" {
+                    "http://localhost:5173"
+                } else {
+                    "https://rbgs.io"
+                }
+            );
+            return;
+        }
+        for value in ["http://localhost:8080", "https://api.rbgs.io"] {
+            let result = std::process::Command::new(std::env::current_exe().unwrap())
+                .args([
+                    "--exact",
+                    "pairing::tests::same_binary_uses_the_environment_of_each_launch",
+                    "--nocapture",
+                ])
+                .env(CHILD, "1")
+                .env("RBGS_COMPANION_API_ORIGIN", value)
+                .output()
+                .unwrap();
+            assert!(
+                result.status.success(),
+                "Environment launch regression failed: {}",
+                String::from_utf8_lossy(&result.stderr)
+            );
+        }
+    }
     #[test]
     fn rejects_invalid_secrets() {
         assert!(valid_secret(&"a".repeat(43)));

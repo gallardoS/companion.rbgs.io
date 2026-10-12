@@ -1,0 +1,12 @@
+:root { font-family: Inter, system-ui, sans-serif; color: #e9edf4; background: #10141c; }
+body { margin: 0; }
+main { max-width: 38rem; margin: 0 auto; padding: 4rem 2rem; }
+h1 { font-size: 2rem; }
+p { color: #b5c0cf; line-height: 1.5; }
+label { display: block; margin-bottom: .5rem; }
+input { display: block; box-sizing: border-box; width: 100%; background: #070808; color: #fafaf6; border: 1px solid #ffffff40; border-radius: .5rem; padding: .75rem; font: inherit; }
+button { background: #facc15; color: #070808; border: 0; padding: .75rem 1rem; border-radius: .5rem; margin: .75rem .75rem .75rem 0; font: inherit; cursor: pointer; }
+button:disabled { opacity: .5; cursor: default; }
+button:focus-visible, input:focus-visible { outline: 2px solid #fafaf6; outline-offset: 3px; }
+.pairing-code { display: block; font-size: 2rem; letter-spacing: .2em; color: #facc15; overflow-wrap: anywhere; }
+strong { overflow-wrap: anywhere; }

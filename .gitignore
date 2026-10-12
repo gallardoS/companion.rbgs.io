@@ -1,0 +1,9 @@
+__pycache__/
+*.pyc
+node_modules/
+dist/
+src-tauri/target/
+.env
+/LOCAL.md
+.idea/
+*.tsbuildinfo

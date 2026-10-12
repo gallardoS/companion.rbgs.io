@@ -1,0 +1,291 @@
+use serde::{Deserialize, Serialize};
+use std::time::{Duration, Instant};
+use tokio::sync::Mutex;
+
+const SERVICE: &str = "io.rbgs.companion.device";
+const SCOPE: &str = "companion:status";
+pub(crate) const CAPTURE_SCOPE: &str = "companion:status companion:assignments evidence:write";
+
+pub struct PairingState(Mutex<Option<Pending>>);
+impl Default for PairingState {
+    fn default() -> Self {
+        Self(Mutex::new(None))
+    }
+}
+struct Pending {
+    secret: String,
+    deadline: Instant,
+    next_poll: Instant,
+    issued_token: Option<String>,
+    requested_scope: String,
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PairingView {
+    code: String,
+    expires_at: String,
+}
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct PairingResponse {
+    code: String,
+    polling_secret: String,
+    expires_at: String,
+    interval_seconds: u64,
+}
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct TokenResponse {
+    status: String,
+    token: Option<String>,
+    scope: Option<String>,
+}
+#[derive(Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Connection {
+    device_id: String,
+    pub(crate) account_id: String,
+    scope: String,
+    local_storage_warning: Option<String>,
+    #[serde(default)]
+    pub capture_permissions: bool,
+}
+
+pub(crate) fn origin() -> &'static str {
+    // Build-time local override is permitted only in debug builds. Web content cannot select a token destination.
+    if cfg!(debug_assertions) {
+        option_env!("RBGS_COMPANION_API_ORIGIN").unwrap_or("https://api.rbgs.io")
+    } else {
+        "https://api.rbgs.io"
+    }
+}
+pub(crate) fn client() -> Result<reqwest::Client, String> {
+    let valid = origin() == "https://api.rbgs.io"
+        || (cfg!(debug_assertions) && origin() == "http://localhost:8080");
+    if !valid {
+        return Err("Unsupported API origin".into());
+    }
+    reqwest::Client::builder()
+        .redirect(reqwest::redirect::Policy::none())
+        .timeout(Duration::from_secs(10))
+        .build()
+        .map_err(|_| "Could not initialize the connection".into())
+}
+fn entry() -> Result<keyring::Entry, String> {
+    keyring::Entry::new(SERVICE, origin())
+        .map_err(|_| "Windows credential storage is unavailable".into())
+}
+pub(crate) fn stored_token() -> Result<String, String> {
+    entry()?.get_password().map_err(|e| match e {
+        keyring::Error::NoEntry => "No paired device. Generate a pairing code.".into(),
+        _ => "Windows credential storage could not be read".into(),
+    })
+}
+fn valid_secret(secret: &str) -> bool {
+    secret.len() == 43
+        && secret
+            .bytes()
+            .all(|b| b.is_ascii_alphanumeric() || b == b'_' || b == b'-')
+}
+fn api_error(status: reqwest::StatusCode) -> String {
+    match status.as_u16() {
+        401 => {
+            "Device access expired, was revoked, or the account is unavailable. Pair again.".into()
+        }
+        410 => "Pairing expired or was already used. Generate a new code.".into(),
+        429 => "Too many attempts. Wait one minute before retrying.".into(),
+        409 => "Device limit reached. Revoke an existing device in web Settings.".into(),
+        _ => "The server could not confirm this operation. Try again later.".into(),
+    }
+}
+
+#[tauri::command]
+pub async fn start_pairing(
+    state: tauri::State<'_, PairingState>,
+    name: String,
+    capture_permissions: Option<bool>,
+) -> Result<PairingView, String> {
+    if name.trim().is_empty() || name.chars().count() > 80 || name.chars().any(char::is_control) {
+        return Err("Use a device name of 1â€“80 characters".into());
+    }
+    let mut pending = state.0.lock().await;
+    if pending.as_ref().is_some_and(|p| p.issued_token.is_some()) {
+        return Err("Finish saving the issued credential before generating another code".into());
+    }
+    let requested_scope = if capture_permissions.unwrap_or(false) {
+        CAPTURE_SCOPE
+    } else {
+        SCOPE
+    };
+    let response = client()?
+        .post(format!("{}/api/v1/device-pairings", origin()))
+        .json(&serde_json::json!({ "name": name.trim(), "scope": requested_scope }))
+        .send()
+        .await
+        .map_err(|_| "Connection unavailable")?;
+    if !response.status().is_success() {
+        return Err(api_error(response.status()));
+    }
+    let result: PairingResponse = response
+        .json()
+        .await
+        .map_err(|_| "Invalid pairing response")?;
+    if !valid_secret(&result.polling_secret)
+        || result.code.len() != 10
+        || result.interval_seconds != 5
+    {
+        return Err("Invalid pairing response".into());
+    }
+    *pending = Some(Pending {
+        secret: result.polling_secret,
+        deadline: Instant::now() + Duration::from_secs(300),
+        next_poll: Instant::now(),
+        issued_token: None,
+        requested_scope: requested_scope.into(),
+    });
+    Ok(PairingView {
+        code: result.code,
+        expires_at: result.expires_at,
+    })
+}
+
+#[tauri::command]
+pub async fn poll_pairing(state: tauri::State<'_, PairingState>) -> Result<String, String> {
+    advance_pairing(&state).await
+}
+pub(crate) async fn advance_pairing(state: &PairingState) -> Result<String, String> {
+    let mut slot = state.0.lock().await;
+    let Some(pending) = slot.as_mut() else {
+        return Ok(if stored_token().is_ok() {
+            "PAIRED"
+        } else {
+            "IDLE"
+        }
+        .into());
+    };
+    if pending.issued_token.is_none() {
+        if Instant::now() >= pending.deadline {
+            return Err("Pairing expired. Generate a new code.".into());
+        }
+        if Instant::now() < pending.next_poll {
+            return Ok("PENDING".into());
+        }
+        pending.next_poll = Instant::now() + Duration::from_secs(5);
+        let response = client()?.post(format!("{}/api/v1/device-pairings/token", origin()))
+            .json(&serde_json::json!({ "pollingSecret": pending.secret })).send().await
+            .map_err(|_| "Connection interrupted. If approval was already consumed, generate a new code.")?;
+        if !response.status().is_success() {
+            return Err(api_error(response.status()));
+        }
+        let result: TokenResponse = response
+            .json()
+            .await
+            .map_err(|_| "Invalid token response")?;
+        if result.status == "PENDING" {
+            return Ok("PENDING".into());
+        }
+        let token = result
+            .token
+            .filter(|t| valid_secret(t))
+            .ok_or("Invalid token response")?;
+        if result.status != "PAIRED"
+            || result.scope.as_deref() != Some(pending.requested_scope.as_str())
+        {
+            return Err("Invalid token scope".into());
+        }
+        pending.issued_token = Some(token);
+    }
+    // On storage failure retain the token only in Rust memory so the user can retry without a second exchange.
+    entry()?
+        .set_password(pending.issued_token.as_ref().unwrap())
+        .map_err(|_| "Could not save the credential in Windows. Retry finishing the connection.")?;
+    *slot = None;
+    Ok("PAIRED".into())
+}
+
+#[tauri::command]
+pub async fn connection_status() -> Result<Connection, String> {
+    verify_connection().await
+}
+pub(crate) async fn verify_connection() -> Result<Connection, String> {
+    let token = stored_token()?;
+    verify_token(&token).await
+}
+pub(crate) async fn verify_token(token: &str) -> Result<Connection, String> {
+    let response = client()?
+        .get(format!("{}/api/v1/companion/status", origin()))
+        .bearer_auth(&token)
+        .send()
+        .await
+        .map_err(|_| "Connection unavailable. Your credential remains stored.")?;
+    if !response.status().is_success() {
+        return Err(api_error(response.status()));
+    }
+    let mut result: Connection = response
+        .json()
+        .await
+        .map_err(|_| "Invalid connection response")?;
+    if ![SCOPE, CAPTURE_SCOPE].contains(&result.scope.as_str())
+        || result.account_id.len() != 36
+        || !result.account_id.bytes().enumerate().all(|(i, b)| {
+            if [8, 13, 18, 23].contains(&i) {
+                b == b'-'
+            } else {
+                b.is_ascii_hexdigit()
+            }
+        })
+    {
+        return Err("Invalid connection scope".into());
+    }
+    result.local_storage_warning = None;
+    result.capture_permissions = result.scope == CAPTURE_SCOPE;
+    Ok(result)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn rejects_invalid_secrets() {
+        assert!(valid_secret(&"a".repeat(43)));
+        assert!(!valid_secret(&"a".repeat(42)));
+        assert!(!valid_secret(&format!("{}\n", "a".repeat(42))));
+    }
+    #[test]
+    fn expired_upgrade_stays_expired_instead_of_reporting_the_old_credential_as_paired() {
+        tauri::async_runtime::block_on(async {
+            let state = PairingState(Mutex::new(Some(Pending {
+                secret: "a".repeat(43),
+                deadline: Instant::now() - Duration::from_secs(1),
+                next_poll: Instant::now(),
+                issued_token: None,
+                requested_scope: CAPTURE_SCOPE.into(),
+            })));
+            assert!(
+                advance_pairing(&state)
+                    .await
+                    .unwrap_err()
+                    .contains("expired")
+            );
+            assert!(state.0.lock().await.is_some());
+        });
+    }
+    #[test]
+    fn credential_store_survives_a_new_entry() {
+        // A unique synthetic credential is removed even when verification fails.
+        let name = format!(
+            "fixture-{}-{:?}",
+            std::process::id(),
+            std::time::SystemTime::now()
+        );
+        let first = keyring::Entry::new("io.rbgs.companion.test", &name).unwrap();
+        first.set_password("synthetic-credential").unwrap();
+        let restored = keyring::Entry::new("io.rbgs.companion.test", &name)
+            .unwrap()
+            .get_password();
+        let removed = first.delete_credential();
+        assert_eq!(restored.unwrap(), "synthetic-credential");
+        removed.unwrap();
+    }
+}

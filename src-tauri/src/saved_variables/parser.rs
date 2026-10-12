@@ -385,6 +385,41 @@ fn parse_root(bytes: &[u8], name: &str) -> Result<Value> {
     Ok(root)
 }
 
+// Share only the bounded data grammar. Each addon keeps its own root/schema.
+pub(super) fn product_json(bytes: &[u8]) -> Result<serde_json::Value> {
+    fn convert(value: Value, array: bool) -> Result<serde_json::Value> {
+        use serde_json::Value as Json;
+        Ok(match value {
+            Value::Nil => Json::Null,
+            Value::Bool => return Err(ParseError::InvalidRecords),
+            Value::Number(value) => Json::Number(value),
+            Value::Text(value) => Json::String(value),
+            Value::Table(table) if array => {
+                let mut rows = Vec::new();
+                for (index, (key, value)) in table.into_iter().enumerate() {
+                    if key != Key::Integer(index as i64 + 1) {
+                        return Err(ParseError::InvalidRecords);
+                    }
+                    rows.push(convert(value, false)?);
+                }
+                Json::Array(rows)
+            }
+            Value::Table(table) => {
+                let mut object = serde_json::Map::new();
+                for (key, value) in table {
+                    let Key::Text(key) = key else {
+                        return Err(ParseError::InvalidRecords);
+                    };
+                    let array = key == "captures" || key == "roster";
+                    object.insert(key, convert(value, array)?);
+                }
+                Json::Object(object)
+            }
+        })
+    }
+    convert(parse_root(bytes, "RBGSMatchData")?, false)
+}
+
 pub fn parse(bytes: &[u8]) -> Result<Summary> {
     let root = parse_root(bytes, "RBGSCompatibilityData")?;
     if root.get("schema").and_then(Value::integer) != Some(1) {

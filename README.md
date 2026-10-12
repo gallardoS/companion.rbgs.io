@@ -42,3 +42,13 @@ The diagnostic Python reader and sanitized fixtures are in `tools/`:
 ```powershell
 python -m unittest discover -s tools -p test_parse_probe.py
 ```
+
+## Local match history
+
+Install and enable the product `RBGS` addon alongside the diagnostic addon. **Completed matches** reads the selected account's separate `RBGS.lua` / `RBGSMatchData` schema 2, currently limited to the controlled Darkspear/70338 adapter. Expand a completed capture to inspect its final roster and statistics. The winning faction is shown; player identity and match verification are not inferred from scoreboard names.
+
+History refreshes every five seconds or through **Refresh match history**. Stable, bounded reads reuse unchanged data. The addon retains eight attempts; the companion preserves every observed revision transactionally in `capture-inbox-v1.sqlite3` under its Windows local-data directory. Saved captures survive restart, missing game files and clearing addon history.
+
+Snapshots retain canonical UTF-8 JSON and SHA-256 digests. Identical revisions are deduplicated; conflicting contents are preserved and excluded from completed history. Codes and GUIDs remain private to native snapshots. Account context is confirmed through the native device API and isolated by API origin, credential fingerprint and selected game source. Unbound imports remain preserved separately.
+
+The local queue is bounded to 100 snapshots, 25 MiB of payloads, 256 KiB per snapshot and 50 MiB disk headroom. Full, unavailable, corrupt or unsupported storage preserves existing files and reports an error. No snapshots are automatically pruned, no game files are written and no captures are uploaded in this stage.

@@ -1,3 +1,5 @@
+pub mod history;
+pub(crate) mod inbox;
 mod parser;
 
 use parser::{Compatibility, MAX_BYTES, ParseError, Summary};
@@ -119,6 +121,7 @@ struct SourceManager {
     loaded: bool,
     config: Option<Config>,
     watch: WatchCursor,
+    history: history::HistoryCache,
 }
 
 #[derive(Debug, PartialEq, Eq)]

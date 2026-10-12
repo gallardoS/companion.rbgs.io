@@ -50,6 +50,8 @@ pub struct Connection {
     local_storage_warning: Option<String>,
     #[serde(default)]
     pub capture_permissions: bool,
+    #[serde(skip)]
+    pub(crate) credential_fingerprint: String,
 }
 
 pub(crate) fn origin() -> &'static str {
@@ -81,6 +83,12 @@ pub(crate) fn stored_token() -> Result<String, String> {
         keyring::Error::NoEntry => "No paired device. Generate a pairing code.".into(),
         _ => "Windows credential storage could not be read".into(),
     })
+}
+pub(crate) fn credential_fingerprint() -> Option<String> {
+    use sha2::{Digest, Sha256};
+    stored_token()
+        .ok()
+        .map(|token| format!("{:x}", Sha256::digest(token.as_bytes())))
 }
 fn valid_secret(secret: &str) -> bool {
     secret.len() == 43
@@ -205,8 +213,21 @@ pub(crate) async fn advance_pairing(state: &PairingState) -> Result<String, Stri
 }
 
 #[tauri::command]
-pub async fn connection_status() -> Result<Connection, String> {
-    verify_connection().await
+pub async fn connection_status(app: tauri::AppHandle) -> Result<Connection, String> {
+    let mut result = verify_connection().await?;
+    let path = crate::saved_variables::inbox::path(&app)?;
+    let fingerprint = result.credential_fingerprint.clone();
+    let account = result.account_id.clone();
+    let saved = tauri::async_runtime::spawn_blocking(move || {
+        crate::saved_variables::inbox::confirm_account(&path, &fingerprint, &account)
+    })
+    .await
+    .map_err(|_| "Local account context could not be saved")
+    .and_then(|r| r.map_err(|_| "Local account context could not be saved"));
+    if let Err(message) = saved {
+        result.local_storage_warning = Some(message.into());
+    }
+    Ok(result)
 }
 pub(crate) async fn verify_connection() -> Result<Connection, String> {
     let token = stored_token()?;
@@ -238,6 +259,8 @@ pub(crate) async fn verify_token(token: &str) -> Result<Connection, String> {
     {
         return Err("Invalid connection scope".into());
     }
+    use sha2::{Digest, Sha256};
+    result.credential_fingerprint = format!("{:x}", Sha256::digest(token.as_bytes()));
     result.local_storage_warning = None;
     result.capture_permissions = result.scope == CAPTURE_SCOPE;
     Ok(result)

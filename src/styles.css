@@ -20,3 +20,14 @@ select:focus-visible { outline: 2px solid #fafaf6; outline-offset: 3px; }
 .saved-data-summary dt { color: #b5c0cf; font-size: .875rem; }
 .saved-data-summary dd { margin: .25rem 0 0; }
 .saved-data-note { font-size: .875rem; }
+.match-history { margin-top: 2rem; border-top: 1px solid #ffffff25; }
+.history-match { border: 1px solid #ffffff25; border-radius: .5rem; margin: 1rem 0; padding: 1rem; }
+.history-match summary { cursor: pointer; overflow-wrap: anywhere; }
+.history-match summary span, .history-match summary time { display: block; margin-top: .4rem; color: #b5c0cf; }
+.history-match summary:focus-visible, .scoreboard-scroll:focus-visible { outline: 2px solid #fafaf6; outline-offset: 3px; }
+.scoreboard-scroll { overflow-x: auto; }
+.scoreboard-scroll table { border-collapse: collapse; font-size: .875rem; width: 100%; }
+.scoreboard-scroll caption { text-align: left; margin: 1rem 0; }
+.scoreboard-scroll th, .scoreboard-scroll td { padding: .6rem; text-align: left; border-bottom: 1px solid #ffffff18; }
+.scoreboard-scroll th[scope=row] { min-width: 9rem; font-weight: normal; overflow-wrap: anywhere; }
+@media (max-width: 480px) { main { padding: 2rem 1rem; } .history-match { padding: .75rem; } }

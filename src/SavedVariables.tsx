@@ -1,5 +1,6 @@
 import { useEffect, useId, useRef, useState } from 'react';
 import { invoke } from '@tauri-apps/api/core';
+import { MatchHistory } from './MatchHistory';
 
 type Summary = {
   schema: number; recordCount: number; clientVersion: string | null; clientBuild: string | null;
@@ -134,6 +135,7 @@ export function SavedVariables() {
       <div><dt>Raw winner code (unverified)</dt><dd>{data.rawWinner ?? 'Unknown'}</dd></div>
       <div><dt>Latest capture marker</dt><dd>{data.lastCapturePhase ?? 'Unknown'}</dd></div>
     </dl>}
+    {!busy && view?.selectedSource && <MatchHistory key={`${view.installation}/${view.selectedSource}`} />}
     <p className="saved-data-note">Use /reload or log out in WoW to save new data. Keep the companion open for automatic updates; Refresh saved data is also available. SavedVariables do not update continuously. File freshness and device connectivity do not establish current in-game participation, account ownership or a verified match.</p>
   </section>;
 }

@@ -1,0 +1,372 @@
+{
+  "schema": 2,
+  "captures": [
+    {
+      "capture": {
+        "continuity": "CONTINUOUS",
+        "endedAt": "2026-10-11T16:20:00Z",
+        "state": "COMPLETE",
+        "roster": [
+          {
+            "observedTeamKey": "1",
+            "character": {
+              "name": "FixtureScore01 FixtureFamily01"
+            },
+            "honorableKills": 81,
+            "deaths": 0,
+            "healing": 0,
+            "killingBlows": 25,
+            "damage": 49999
+          },
+          {
+            "observedTeamKey": "0",
+            "character": {
+              "name": "FixtureScore02 FixtureFamily02"
+            },
+            "honorableKills": 57,
+            "deaths": 8,
+            "healing": 284,
+            "killingBlows": 16,
+            "damage": 38153
+          },
+          {
+            "observedTeamKey": "0",
+            "character": {
+              "name": "FixtureScore03 FixtureFamily03"
+            },
+            "honorableKills": 57,
+            "deaths": 3,
+            "healing": 3205,
+            "killingBlows": 6,
+            "damage": 29872
+          },
+          {
+            "observedTeamKey": "1",
+            "character": {
+              "name": "FixtureScore04 FixtureFamily04"
+            },
+            "honorableKills": 53,
+            "deaths": 7,
+            "healing": 404,
+            "killingBlows": 18,
+            "damage": 29319
+          },
+          {
+            "observedTeamKey": "0",
+            "character": {
+              "name": "FixtureScore05 FixtureFamily05"
+            },
+            "honorableKills": 48,
+            "deaths": 10,
+            "healing": 0,
+            "killingBlows": 6,
+            "damage": 24099
+          },
+          {
+            "observedTeamKey": "1",
+            "character": {
+              "name": "FixtureScore06 FixtureFamily06"
+            },
+            "honorableKills": 73,
+            "deaths": 9,
+            "healing": 1356,
+            "killingBlows": 10,
+            "damage": 21565
+          },
+          {
+            "observedTeamKey": "0",
+            "character": {
+              "name": "fixtureplayer FixtureFamily"
+            },
+            "honorableKills": 49,
+            "deaths": 9,
+            "healing": 160,
+            "killingBlows": 3,
+            "damage": 19729
+          },
+          {
+            "observedTeamKey": "0",
+            "character": {
+              "name": "FixtureScore08 FixtureFamily08"
+            },
+            "honorableKills": 46,
+            "deaths": 6,
+            "healing": 0,
+            "killingBlows": 5,
+            "damage": 19655
+          },
+          {
+            "observedTeamKey": "0",
+            "character": {
+              "name": "FixtureScore09 FixtureFamily09"
+            },
+            "honorableKills": 45,
+            "deaths": 7,
+            "healing": 4363,
+            "killingBlows": 4,
+            "damage": 16198
+          },
+          {
+            "observedTeamKey": "1",
+            "character": {
+              "name": "FixtureScore10 FixtureFamily10"
+            },
+            "honorableKills": 48,
+            "deaths": 2,
+            "healing": 9392,
+            "killingBlows": 4,
+            "damage": 14014
+          },
+          {
+            "observedTeamKey": "0",
+            "character": {
+              "name": "FixtureScore11 FixtureFamily11"
+            },
+            "honorableKills": 36,
+            "deaths": 5,
+            "healing": 9944,
+            "killingBlows": 5,
+            "damage": 13076
+          },
+          {
+            "observedTeamKey": "1",
+            "character": {
+              "name": "FixtureScore12 FixtureFamily12"
+            },
+            "honorableKills": 72,
+            "deaths": 6,
+            "healing": 3837,
+            "killingBlows": 4,
+            "damage": 12467
+          },
+          {
+            "observedTeamKey": "0",
+            "character": {
+              "name": "FixtureScore13 FixtureFamily13"
+            },
+            "honorableKills": 54,
+            "deaths": 5,
+            "healing": 3121,
+            "killingBlows": 4,
+            "damage": 11257
+          },
+          {
+            "observedTeamKey": "1",
+            "character": {
+              "name": "FixtureScore14 FixtureFamily14"
+            },
+            "honorableKills": 62,
+            "deaths": 6,
+            "healing": 227,
+            "killingBlows": 6,
+            "damage": 10928
+          },
+          {
+            "observedTeamKey": "1",
+            "character": {
+              "name": "FixtureScore15 FixtureFamily15"
+            },
+            "honorableKills": 52,
+            "deaths": 8,
+            "healing": 0,
+            "killingBlows": 0,
+            "damage": 10883
+          },
+          {
+            "observedTeamKey": "0",
+            "character": {
+              "name": "FixtureScore16 FixtureFamily16"
+            },
+            "honorableKills": 56,
+            "deaths": 6,
+            "healing": 118,
+            "killingBlows": 1,
+            "damage": 10679
+          },
+          {
+            "observedTeamKey": "1",
+            "character": {
+              "name": "FixtureScore17 FixtureFamily17"
+            },
+            "honorableKills": 66,
+            "deaths": 5,
+            "healing": 1340,
+            "killingBlows": 4,
+            "damage": 10374
+          },
+          {
+            "observedTeamKey": "0",
+            "character": {
+              "name": "FixtureScore18 FixtureFamily18"
+            },
+            "honorableKills": 62,
+            "deaths": 1,
+            "healing": 9307,
+            "killingBlows": 8,
+            "damage": 10209
+          },
+          {
+            "observedTeamKey": "1",
+            "character": {
+              "name": "FixtureScore19 FixtureFamily19"
+            },
+            "honorableKills": 61,
+            "deaths": 1,
+            "healing": 456,
+            "killingBlows": 5,
+            "damage": 9936
+          },
+          {
+            "observedTeamKey": "0",
+            "character": {
+              "name": "FixtureScore20 FixtureFamily20"
+            },
+            "honorableKills": 50,
+            "deaths": 5,
+            "healing": 0,
+            "killingBlows": 6,
+            "damage": 8778
+          },
+          {
+            "observedTeamKey": "1",
+            "character": {
+              "name": "FixtureScore21 FixtureFamily21"
+            },
+            "honorableKills": 66,
+            "deaths": 7,
+            "healing": 1296,
+            "killingBlows": 5,
+            "damage": 6542
+          },
+          {
+            "observedTeamKey": "1",
+            "character": {
+              "name": "FixtureScore22 FixtureFamily22"
+            },
+            "honorableKills": 71,
+            "deaths": 6,
+            "healing": 23816,
+            "killingBlows": 3,
+            "damage": 6396
+          },
+          {
+            "observedTeamKey": "0",
+            "character": {
+              "name": "FixtureScore23 FixtureFamily23"
+            },
+            "honorableKills": 52,
+            "deaths": 5,
+            "healing": 3572,
+            "killingBlows": 2,
+            "damage": 6083
+          },
+          {
+            "observedTeamKey": "1",
+            "character": {
+              "name": "FixtureScore24 FixtureFamily24"
+            },
+            "honorableKills": 60,
+            "deaths": 5,
+            "healing": 0,
+            "killingBlows": 3,
+            "damage": 5717
+          },
+          {
+            "observedTeamKey": "1",
+            "character": {
+              "name": "FixtureScore25 FixtureFamily25"
+            },
+            "honorableKills": 70,
+            "deaths": 5,
+            "healing": 920,
+            "killingBlows": 1,
+            "damage": 5697
+          },
+          {
+            "observedTeamKey": "0",
+            "character": {
+              "name": "FixtureScore26 FixtureFamily26"
+            },
+            "honorableKills": 43,
+            "deaths": 6,
+            "healing": 4980,
+            "killingBlows": 1,
+            "damage": 5336
+          },
+          {
+            "observedTeamKey": "0",
+            "character": {
+              "name": "FixtureScore27 FixtureFamily27"
+            },
+            "honorableKills": 44,
+            "deaths": 6,
+            "healing": 5407,
+            "killingBlows": 1,
+            "damage": 4760
+          },
+          {
+            "observedTeamKey": "1",
+            "character": {
+              "name": "FixtureScore28 FixtureFamily28"
+            },
+            "honorableKills": 61,
+            "deaths": 4,
+            "healing": 31727,
+            "killingBlows": 2,
+            "damage": 4190
+          },
+          {
+            "observedTeamKey": "1",
+            "character": {
+              "name": "FixtureScore29 FixtureFamily29"
+            },
+            "honorableKills": 60,
+            "deaths": 4,
+            "healing": 38114,
+            "killingBlows": 0,
+            "damage": 4113
+          },
+          {
+            "observedTeamKey": "0",
+            "character": {
+              "name": "FixtureScore30 FixtureFamily30"
+            },
+            "honorableKills": 13,
+            "deaths": 1,
+            "healing": 2699,
+            "killingBlows": 0,
+            "damage": 788
+          }
+        ],
+        "startedAt": "2026-10-11T16:00:00Z",
+        "outcome": {
+          "kind": "WIN",
+          "winningObservedTeamKey": "1",
+          "rawWinner": "1"
+        },
+        "stage": "COMPLETE",
+        "map": {
+          "profile": "DARKSPEAR_DIAGNOSTIC",
+          "observedName": "Darkspear Islands",
+          "gameMapId": 2997
+        }
+      },
+      "observedCharacter": {
+        "name": "FixturePlayer",
+        "realm": "FixtureRealm",
+        "guid": "fixture-player-guid"
+      },
+      "captureRevision": 158,
+      "captureId": "00000000-0000-4000-8000-000000000003",
+      "assignmentCode": "0123456789ABCDEF",
+      "client": {
+        "gameVersion": "1.60.1",
+        "addonVersion": "0.1.0-test",
+        "gameBuild": "70338",
+        "interface": 16001,
+        "adapterVersion": "darkspear-70338-test-1",
+        "product": "wow_classic_beta"
+      }
+    }
+  ]
+}

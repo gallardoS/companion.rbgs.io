@@ -10,6 +10,7 @@ pub fn run() {
             pairing::connection_status,
             saved_variables::saved_variables_status,
             saved_variables::saved_variables_update,
+            saved_variables::history::match_history,
             saved_variables::choose_forever_installation,
             saved_variables::scan_forever_installations,
             saved_variables::select_saved_variables_source

@@ -51,6 +51,7 @@ impl Session {
             .client
             .request(method, format!("{}{path}", self.endpoint))
             .bearer_auth(&self.token)
+            .header("X-RBGS-Capture-Test-Kinds", "CAPTURE_ONLY")
             .header("Accept", "application/json");
         if let Some(body) = body {
             request = request
@@ -120,6 +121,8 @@ fn utc_stamp(value: &Value) -> bool {
     history::timestamp(&format!("{}Z", &s[..19]))
 }
 fn descriptor(value: &Value, capture: &str) -> Result<(), String> {
+    let capture_only = value.get("testKind").is_some_and(|v| v == "CAPTURE_ONLY");
+    let kind_valid = value.get("testKind").is_none() || capture_only;
     let required = [
         "schemaVersion",
         "matchId",
@@ -135,9 +138,10 @@ fn descriptor(value: &Value, capture: &str) -> Result<(), String> {
         "expectedMapProfile",
         "expectedRoster",
     ];
-    let valid = value
-        .as_object()
-        .is_some_and(|o| o.len() == required.len() && required.iter().all(|k| o.contains_key(*k)))
+    let valid = value.as_object().is_some_and(|o| {
+        o.len() == required.len() + usize::from(capture_only)
+            && required.iter().all(|k| o.contains_key(*k))
+    }) && kind_valid
         && value["schemaVersion"] == 2
         && value["mode"] == "CONTROLLED_TEST"
         && value["expectedMapProfile"] == "DARKSPEAR_DIAGNOSTIC"
@@ -158,19 +162,25 @@ fn descriptor(value: &Value, capture: &str) -> Result<(), String> {
         && value["rosterVersion"]
             .as_u64()
             .is_some_and(|n| n >= 1 && n <= 2147483647)
-        && value["assignedTeamKey"]
-            .as_str()
-            .is_some_and(|s| s == "A" || s == "B")
+        && if capture_only {
+            value["assignedTeamKey"].is_null()
+        } else {
+            value["assignedTeamKey"]
+                .as_str()
+                .is_some_and(|s| s == "A" || s == "B")
+        }
         && ["issuedAt", "armUntil"]
             .iter()
             .all(|k| utc_stamp(&value[*k]))
         && value["expectedRoster"].as_array().is_some_and(|r| {
-            r.len() >= 2
-                && r.len() <= 40
-                && r.iter().any(|row| {
-                    row["characterId"] == value["assignedCharacterId"]
-                        && row["assignedTeamKey"] == value["assignedTeamKey"]
-                })
+            (if capture_only {
+                r.len() == 1
+            } else {
+                r.len() >= 2 && r.len() <= 40
+            }) && r.iter().any(|row| {
+                row["characterId"] == value["assignedCharacterId"]
+                    && row["assignedTeamKey"] == value["assignedTeamKey"]
+            })
         });
     if !valid {
         return Err("Invalid or unsupported assignment descriptor.".into());
@@ -711,6 +721,27 @@ mod tests {
             "mode":"CONTROLLED_TEST","issuedAt":"2026-10-11T15:00:00Z","armUntil":"2026-10-11T16:00:00.123456Z", "rosterVersion":1,
             "assignedCharacterId":ACCOUNT,"assignedTeamKey":"A","expectedMapProfile":"DARKSPEAR_DIAGNOSTIC",
             "expectedRoster":[{"characterId":ACCOUNT,"assignedTeamKey":"A"},{"characterId":ASSIGNMENT,"assignedTeamKey":"B"}]})
+    }
+    #[test]
+    fn capture_only_descriptor_binds_one_declared_reporter_without_a_team() {
+        let snapshot = fixture();
+        let mut descriptor = assignment(&snapshot);
+        descriptor["testKind"] = json!("CAPTURE_ONLY");
+        descriptor["assignedTeamKey"] = Value::Null;
+        descriptor["expectedRoster"] = json!([{"characterId":ACCOUNT,"assignedTeamKey":null}]);
+        let bytes = body(&snapshot, &descriptor).unwrap();
+        let report: Value = serde_json::from_slice(&bytes).unwrap();
+        assert_eq!(bytes, body(&snapshot, &assignment(&snapshot)).unwrap());
+        assert!(report.get("testKind").is_none()); // Purpose is immutable server assignment metadata.
+        descriptor["assignedTeamKey"] = json!("A");
+        assert!(body(&snapshot, &descriptor).is_err());
+        descriptor["assignedTeamKey"] = Value::Null;
+        descriptor["expectedRoster"][0]["characterId"] = json!(ASSIGNMENT);
+        assert!(body(&snapshot, &descriptor).is_err());
+        descriptor["testKind"] = json!("UNKNOWN");
+        assert!(body(&snapshot, &descriptor).is_err());
+        descriptor.as_object_mut().unwrap().remove("testKind");
+        assert!(body(&snapshot, &descriptor).is_err()); // Single-row shape needs explicit purpose.
     }
     fn accepted(snapshot: &Value, bytes: &[u8]) -> Value {
         json!({"schemaVersion":2,"evidenceId":ACCOUNT,"assignmentId":ASSIGNMENT,"captureId":snapshot["captureId"],

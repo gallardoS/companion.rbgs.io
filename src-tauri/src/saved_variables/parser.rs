@@ -480,8 +480,24 @@ pub fn parse(bytes: &[u8]) -> Result<Summary> {
                     display(payload.get("instance").and_then(|v| v.position(1)), 256);
             }
             "identity" => {
-                summary.observed_character =
-                    display(payload.get("name").and_then(|v| v.position(1)), 128);
+                let given_name = display(payload.get("name").and_then(|v| v.position(1)), 128);
+                // Only the observed Forever 70338 signature establishes the surname position.
+                summary.observed_character = if summary.client_version.as_deref() == Some("1.60.1")
+                    && summary.client_build.as_deref() == Some("70338")
+                    && summary.client_interface.as_deref() == Some("16001")
+                {
+                    given_name
+                        .zip(display(
+                            payload.get("name").and_then(|v| v.position(2)),
+                            128,
+                        ))
+                        .and_then(|(given, surname)| {
+                            let full = format!("{given} {surname}");
+                            (full.len() <= 128).then_some(full)
+                        })
+                } else {
+                    given_name
+                };
                 summary.observed_realm =
                     display(payload.get("realm").and_then(|v| v.position(1)), 128);
             }
@@ -520,6 +536,57 @@ mod tests {
     use super::*;
     fn wrapped(records: &str) -> String {
         format!("RBGSCompatibilityData={{schema=1,records={{{records}}}}}")
+    }
+    #[test]
+    fn forever_70338_displays_given_name_and_surname_separately_from_realm() {
+        let source = wrapped(
+            r#"{kind="environment",payload={build={"1.60.1","70338","date","16001",count=4}}},
+            {kind="identity",payload={name={"André","Éclair",count=2},realm={"Fixture Realm",count=1}}}"#,
+        );
+        let summary = parse(source.as_bytes()).unwrap();
+        assert_eq!(summary.observed_character.as_deref(), Some("André Éclair"));
+        assert_eq!(summary.observed_realm.as_deref(), Some("Fixture Realm"));
+    }
+    #[test]
+    fn other_client_signatures_do_not_treat_second_name_return_as_surname() {
+        for build in [
+            r#""1.60.1","70291","date","16001""#,
+            r#""1.60.1","99999","date","16001""#,
+            r#""11.0.0","70338","date","16001""#,
+        ] {
+            let source = wrapped(&format!(
+                "{{kind=\"environment\",payload={{build={{{build},count=4}}}}}},\
+                {{kind=\"identity\",payload={{name={{\"FixturePlayer\",\"Other Realm\",count=2}}}}}}"
+            ));
+            assert_eq!(
+                parse(source.as_bytes())
+                    .unwrap()
+                    .observed_character
+                    .as_deref(),
+                Some("FixturePlayer")
+            );
+        }
+    }
+    #[test]
+    fn forever_unknown_or_oversized_surname_stays_unknown() {
+        for surname in [
+            "nil".to_string(),
+            "\"\"".to_string(),
+            "\"<nil or protected>\"".to_string(),
+            "{}".to_string(),
+            format!("\"{}\"", "x".repeat(128)),
+        ] {
+            let source = wrapped(&format!(
+                "{{kind=\"environment\",payload={{build={{\"1.60.1\",\"70338\",\"date\",\"16001\",count=4}}}}}},\
+                {{kind=\"identity\",payload={{name={{\"FixturePlayer\",{surname},count=2}}}}}}"
+            ));
+            assert!(
+                parse(source.as_bytes())
+                    .unwrap()
+                    .observed_character
+                    .is_none()
+            );
+        }
     }
     #[test]
     fn empty_bom_comments_and_escaped_unicode_are_data_only() {

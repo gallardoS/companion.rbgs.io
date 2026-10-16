@@ -7,7 +7,6 @@ import { CaptureAssignments } from './CaptureAssignments';
 import './styles.css';
 
 function App() {
-  const [name, setName] = useState('My Windows PC');
   const [pairing, setPairing] = useState<{ code: string; expiresAt: string; approvalUrl: string } | null>(null);
   const [connected, setConnected] = useState(false);
   const [capturePermissions, setCapturePermissions] = useState(false);
@@ -42,15 +41,15 @@ function App() {
     if (busy) return;
     setBusy(true);
     try {
-      const result = await invoke<{ code: string; expiresAt: string; approvalUrl: string }>('start_pairing', { name, capturePermissions: captures });
+      const result = await invoke<{ code: string; expiresAt: string; approvalUrl: string }>('start_pairing', { capturePermissions: captures });
       setPairing(result); setMessage('Waiting for your approval in web Settings.');
       try { await invoke('open_pairing_browser'); } catch { setMessage('Connection request created. Use Approve in browser, or the manual code option if your browser cannot open.'); }
     } catch (error) { setMessage(String(error)); }
     finally { setBusy(false); }
   }
   return <main><h1>{t('title')}</h1><p role="status">{message}</p>
-    {!connected && <><label htmlFor="device-name">Device name</label><input id="device-name" value={name} maxLength={80} disabled={busy} onChange={event => setName(event.target.value)} />
-      <button disabled={busy || !name.trim()} onClick={() => void start()}>{pairing ? 'Generate a new code' : 'Connect account'}</button></>}
+    {!connected && <>
+      <button disabled={busy} onClick={() => void start()}>{pairing ? 'Generate a new code' : 'Connect account'}</button></>}
     {pairing && <section aria-label="Pairing"><p>Approve this PC and its requested permissions in your browser. Connection finishes automatically.</p>
       <button disabled={busy} onClick={()=>void invoke('open_pairing_browser').catch(error=>setMessage(String(error)))}>Approve in browser</button>
       <details><summary>Use a code manually</summary><output className="pairing-code">{pairing.code}</output></details><p>Expires at {new Date(pairing.expiresAt).toLocaleTimeString()}.</p>

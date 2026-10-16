@@ -2,9 +2,25 @@
 use tauri::Manager;
 use tauri_plugin_deep_link::DeepLinkExt;
 pub(crate) fn allowed_link(url: &str) -> bool {
-    url == "rbgs-companion://open" || url == "rbgs-companion://open/"
+    url == "rbgs-companion://open"
+        || url == "rbgs-companion://open/"
+        || crate::web_connect::ticket(url).is_some()
 }
-fn show(app: &tauri::AppHandle) {
+fn receive(app: &tauri::AppHandle, url: &str) {
+    if !allowed_link(url) {
+        return;
+    }
+    show(app);
+    if let Some(secret) = crate::web_connect::ticket(url) {
+        let app = app.clone();
+        let secret = secret.to_owned();
+        tauri::async_runtime::spawn(async move {
+            crate::web_connect::begin(&app, secret).await;
+            crate::web_connect::advance(&app).await;
+        });
+    }
+}
+pub(crate) fn show(app: &tauri::AppHandle) {
     if let Some(window) = app.get_webview_window("main") {
         let _ = window.show();
         let _ = window.unminimize();
@@ -20,21 +36,20 @@ pub(crate) fn setup(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Erro
     }
     let handle = app.handle().clone();
     app.deep_link().on_open_url(move |event| {
-        if event.urls().iter().any(|u| allowed_link(u.as_str())) {
-            show(&handle);
+        for url in event.urls() {
+            receive(&handle, url.as_str());
         }
     });
-    if app
-        .deep_link()
-        .get_current()?
-        .is_some_and(|urls| urls.iter().any(|u| allowed_link(u.as_str())))
-    {
-        show(app.handle());
+    if let Some(urls) = app.deep_link().get_current()? {
+        for url in urls {
+            receive(app.handle(), url.as_str());
+        }
     }
     let handle = app.handle().clone();
     tauri::async_runtime::spawn(async move {
         let mut next = std::time::Instant::now();
         loop {
+            crate::web_connect::advance(&handle).await;
             // Pending approval exchange also continues when the webview is suspended.
             let _ =
                 crate::pairing::advance_pairing(&handle.state::<crate::pairing::PairingState>())

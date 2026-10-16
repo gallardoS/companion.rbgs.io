@@ -1,20 +1,14 @@
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
-        .plugin(tauri_plugin_single_instance::init(|app, args, _| {
-            use tauri::Manager;
-            if args.iter().any(|arg| presence::allowed_link(arg)) {
-                if let Some(window) = app.get_webview_window("main") {
-                    let _ = window.show();
-                    let _ = window.unminimize();
-                    let _ = window.set_focus();
-                }
-            }
+        .plugin(tauri_plugin_single_instance::init(|app, _, _| {
+            presence::show(app);
         }))
         .plugin(tauri_plugin_deep_link::init())
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_dialog::init())
         .manage(pairing::PairingState::default())
+        .manage(web_connect::WebConnectState::default())
         .manage(saved_variables::SavedVariablesState::default())
         .manage(saved_variables::transport::TransportState::default())
         .setup(presence::setup)
@@ -23,6 +17,7 @@ pub fn run() {
             pairing::poll_pairing,
             pairing::open_pairing_browser,
             pairing::connection_status,
+            web_connect::web_connection_state,
             saved_variables::saved_variables_status,
             saved_variables::saved_variables_update,
             saved_variables::history::match_history,
@@ -39,3 +34,4 @@ pub fn run() {
 mod pairing;
 mod presence;
 mod saved_variables;
+mod web_connect;

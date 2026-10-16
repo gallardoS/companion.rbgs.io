@@ -6,6 +6,7 @@ use tokio::sync::Mutex;
 const SERVICE: &str = "io.rbgs.companion.device";
 const SCOPE: &str = "companion:status";
 pub(crate) const CAPTURE_SCOPE: &str = "companion:status companion:assignments evidence:write";
+pub(crate) static CONNECTION_LOCK: Mutex<()> = Mutex::const_new(());
 
 pub struct PairingState(Mutex<Option<Pending>>);
 impl Default for PairingState {
@@ -94,7 +95,7 @@ pub(crate) fn client() -> Result<reqwest::Client, String> {
         .build()
         .map_err(|_| "Could not initialize the connection".into())
 }
-fn entry() -> Result<keyring::Entry, String> {
+pub(crate) fn entry() -> Result<keyring::Entry, String> {
     keyring::Entry::new(SERVICE, origin())
         .map_err(|_| "Windows credential storage is unavailable".into())
 }
@@ -110,7 +111,7 @@ pub(crate) fn credential_fingerprint() -> Option<String> {
         .ok()
         .map(|token| format!("{:x}", Sha256::digest(token.as_bytes())))
 }
-fn valid_secret(secret: &str) -> bool {
+pub(crate) fn valid_secret(secret: &str) -> bool {
     secret.len() == 43
         && secret
             .bytes()
@@ -131,11 +132,12 @@ fn api_error(status: reqwest::StatusCode) -> String {
 #[tauri::command]
 pub async fn start_pairing(
     state: tauri::State<'_, PairingState>,
-    name: String,
+    web: tauri::State<'_, crate::web_connect::WebConnectState>,
     capture_permissions: Option<bool>,
 ) -> Result<PairingView, String> {
-    if name.trim().is_empty() || name.chars().count() > 80 || name.chars().any(char::is_control) {
-        return Err("Use a device name of 1–80 characters".into());
+    let _connection = CONNECTION_LOCK.lock().await;
+    if web.is_pending().await {
+        return Err("Finish the connection opened from the website first".into());
     }
     let mut pending = state.0.lock().await;
     if pending.as_ref().is_some_and(|p| p.issued_token.is_some()) {
@@ -148,7 +150,7 @@ pub async fn start_pairing(
     };
     let response = client()?
         .post(format!("{}/api/v1/device-pairings", origin()))
-        .json(&serde_json::json!({ "name": name.trim(), "scope": requested_scope }))
+        .json(&serde_json::json!({ "scope": requested_scope }))
         .send()
         .await
         .map_err(|_| "Connection unavailable")?;
@@ -191,6 +193,7 @@ pub async fn poll_pairing(state: tauri::State<'_, PairingState>) -> Result<Strin
     advance_pairing(&state).await
 }
 pub(crate) async fn advance_pairing(state: &PairingState) -> Result<String, String> {
+    let _connection = CONNECTION_LOCK.lock().await;
     let mut slot = state.0.lock().await;
     let Some(pending) = slot.as_mut() else {
         return Ok(if stored_token().is_ok() {
@@ -238,6 +241,15 @@ pub(crate) async fn advance_pairing(state: &PairingState) -> Result<String, Stri
         .map_err(|_| "Could not save the credential in Windows. Retry finishing the connection.")?;
     *slot = None;
     Ok("PAIRED".into())
+}
+
+pub(crate) async fn cancel_unissued(state: &PairingState) -> Result<(), String> {
+    let mut pending = state.0.lock().await;
+    if pending.as_ref().is_some_and(|p| p.issued_token.is_some()) {
+        return Err("Finish saving the existing connection before opening another".into());
+    }
+    *pending = None;
+    Ok(())
 }
 
 fn web_origin() -> &'static str {

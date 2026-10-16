@@ -11,6 +11,7 @@
     "dev:local": "node tools/dev-environment.mjs local",
     "dev:prod": "node tools/dev-environment.mjs production",
     "build": "tsc --noEmit && vite build",
+    "icons:generate": "tauri icon public/favicon.svg --output src-tauri/icons",
     "tauri": "tauri"
   },
   "dependencies": {

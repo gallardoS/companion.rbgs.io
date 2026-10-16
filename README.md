@@ -30,6 +30,8 @@ npm run tauri -- build
 
 The Windows NSIS installer and executable use the rbgs.io icon.
 
+The icon source is `public/favicon.svg`, matching the web favicon. Run `npm run icons:generate` after changing it, then rebuild the native application to embed the updated Windows icon.
+
 ## Saved game data
 
 The companion checks `C:\Program Files (x86)\World of Warcraft` and `C:\Program Files\World of Warcraft` for the Forever beta client. A saved installation takes precedence. Use **Scan Folders** for another drive or games folder, or choose `_classic_beta_` directly. Scanning skips junctions and symlinks and is bounded to six folder levels, 10,000 directories, 100,000 entries and ten seconds between filesystem operations.

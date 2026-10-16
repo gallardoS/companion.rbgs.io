@@ -70,6 +70,8 @@ Controlled reports always go to review. A server receipt confirms storage; it do
 
 ## Presence and browser launch
 
+Closing the window with **X** hides the companion in the Windows system tray and keeps the process running. Click its rbgs icon to reopen it, or right-click for **Open rbgs.io companion** and **Exit**. **Exit** stops the application completely. Launching the companion again also restores its existing window. If the tray cannot be created, closing the window exits normally.
+
 Rust sends an authenticated heartbeat approximately every 15 seconds, independently of a minimized or suspended webview. Pending browser approvals also continue in the native loop. The backend marks the selected device disconnected when its last signal is older than 45 seconds. Revocation and expiry block access. A heartbeat confirms device connectivity, not game participation or eligibility.
 
 Browser pairing uses a separate temporary approval secret; the polling secret and native credential never enter the browser. Local debug builds open `http://localhost:5173/settings`; release builds open `https://rbgs.io/settings`. The web asks for explicit approval of the account and requested permissions.

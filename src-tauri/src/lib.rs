@@ -34,4 +34,6 @@ pub fn run() {
 mod pairing;
 mod presence;
 mod saved_variables;
+#[cfg(desktop)]
+mod tray;
 mod web_connect;

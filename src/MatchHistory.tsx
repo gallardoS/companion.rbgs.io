@@ -72,14 +72,14 @@ export function MatchHistory() {
     return () => { disposed = true; clearTimeout(timer); refresh.current = () => {}; };
   }, []);
   return <section className="match-history" aria-labelledby={`${id}-heading`}>
-    <h2 id={`${id}-heading`}>Completed matches</h2>
-    <p>Captures saved on this PC. Server receipt status appears in the local queue; matches remain unverified. New data appears after /reload or logout.</p>
-    <button disabled={busy} onClick={() => refresh.current()}>Refresh match history</button>
+    <div className="section-toolbar"><div><h2 id={`${id}-heading`}>Completed matches</h2>
+    <p>Local observations. Matches remain unverified.</p></div>
+    <button disabled={busy} onClick={() => refresh.current()}>Refresh match history</button></div>
       {view?.queue && <div className="local-inbox">
         <h3>Local capture queue</h3>
         <p role={view.queue.status === 'READY' ? 'status' : 'alert'}>{view.queue.message}</p>
-        <p>{view.queue.snapshots} saved revisions · {view.queue.waitingAssignment} waiting for assignment · {view.queue.needsAuth} waiting for account confirmation</p>
-        <p>{view.queue.acknowledged ?? 0} received by server · {view.queue.pending ?? 0} pending delivery · {view.queue.blocked ?? 0} blocked</p>
+        <dl className="queue-metrics"><div><dt>Saved revisions</dt><dd>{view.queue.snapshots}</dd></div><div><dt>Received by server</dt><dd>{view.queue.acknowledged ?? 0}</dd></div><div><dt>Pending delivery</dt><dd>{view.queue.pending ?? 0}</dd></div><div><dt>Blocked</dt><dd>{view.queue.blocked ?? 0}</dd></div></dl>
+        <p className="saved-data-note">{view.queue.waitingAssignment} waiting for assignment · {view.queue.needsAuth} waiting for account confirmation</p>
         {view.queue.conflicts > 0 && <p role="alert">{view.queue.conflicts} conflicting captures preserved. They are excluded from completed history.</p>}
         {view.queue.unboundSnapshots > 0 && <p>{view.queue.unboundSnapshots} earlier unbound snapshots are preserved separately for assignment recovery.</p>}
         {view.queue.sourceStatus !== 'READY' && <p role="status">{view.queue.sourceMessage} Previously saved captures remain available.</p>}

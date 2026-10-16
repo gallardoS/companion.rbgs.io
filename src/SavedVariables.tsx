@@ -1,6 +1,7 @@
 import { useEffect, useId, useRef, useState } from 'react';
 import { invoke } from '@tauri-apps/api/core';
 import { MatchHistory } from './MatchHistory';
+import { Icon, type TabId } from './Navigation';
 
 type Summary = {
   schema: number; recordCount: number; clientVersion: string | null; clientBuild: string | null;
@@ -35,7 +36,7 @@ function time(value: number | null): string {
   return Number.isNaN(date.valueOf()) ? 'Unknown' : date.toLocaleString();
 }
 
-export function SavedVariables() {
+export function SavedVariables({ activeTab, onTabChange }: { activeTab: TabId; onTabChange: (tab: TabId) => void }) {
   const id = useId();
   const [view, setView] = useState<SourceView | null>(null);
   const [busy, setBusy] = useState(false);
@@ -104,11 +105,14 @@ export function SavedVariables() {
   }
   const data = view?.data;
   const warning = view && ['WRONG_CLIENT', 'MISSING_ADDON', 'UNSUPPORTED_ADDON', 'SOURCE_UNAVAILABLE', 'UNSTABLE_FILE', 'TOO_LARGE', 'INVALID_DATA', 'UNSUPPORTED_SCHEMA', 'UNSUPPORTED_CLIENT'].includes(view.status);
-  return <section className="saved-variables" aria-labelledby={`${id}-heading`}>
-    <h2 id={`${id}-heading`}>Saved game data</h2>
-    <p>We check the usual World of Warcraft folders automatically. If Forever is installed elsewhere, scan a drive or games folder, or choose the installation directly.</p>
-    <button disabled={busy} onClick={() => void run('choose_forever_installation')}>{view?.installation ? 'Change Forever folder' : 'Choose Forever folder'}</button>
-    <button disabled={busy} onClick={() => void run('scan_forever_installations')}>Scan Folders</button>
+  return <>
+    <section id="panel-game" role="tabpanel" aria-labelledby="tab-game" hidden={activeTab !== 'game'} tabIndex={0}>
+    <section className="settings-section" aria-labelledby={`${id}-heading`}>
+    <div className="section-heading"><h2 id={`${id}-heading`}>Forever installation</h2>
+    <p>We check the usual World of Warcraft folders automatically. Choose your installation or scan another drive.</p></div>
+    <div className="section-body"><div className="button-group">
+    <button className="button-primary" disabled={busy} onClick={() => void run('choose_forever_installation')}>{view?.installation ? 'Change Forever folder' : 'Choose Forever folder'}</button>
+    <button disabled={busy} onClick={() => void run('scan_forever_installations')}>Scan Folders</button></div>
     {view?.installation && <p className="local-path">{view.installation.replace(/^\\\\\?\\/, '')}</p>}
     {!!view?.sources.length && <div className="source-picker"><label htmlFor={`${id}-source`}>SavedVariables account</label>
       <select id={`${id}-source`} value={view.selectedSource ?? ''} disabled={busy}
@@ -117,13 +121,15 @@ export function SavedVariables() {
         {view.sources.map(source => <option key={source.id} value={source.id}>{source.label}</option>)}
       </select>
     </div>}
+    </div></section>
+    <section className="settings-section" aria-labelledby={`${id}-data-heading`}><div className="section-heading"><h2 id={`${id}-data-heading`}>Saved game data</h2><p>Data read from the RBGSCompatibility addon after /reload or logout.</p></div><div className="section-body">
     <button disabled={busy} onClick={() => void run('saved_variables_status')}>Refresh saved data</button>
     {busy && <p role="status">Checking local folders and saved data…</p>}
     {error && <p role="alert">{error}</p>}
     {watchError && <p role="alert">Automatic updates unavailable: {watchError}. Retrying…</p>}
     {!watchError && view?.selectedSource && <p className="saved-data-note">Watching selected saved file. Updates appear automatically after /reload or logout.</p>}
     {!busy && !error && !watchError && <p role={warning ? 'alert' : 'status'}>{view?.message ?? 'Loading saved-data settings…'}</p>}
-    {!busy && !error && !watchError && data && <dl className="saved-data-summary">
+    {!busy && !error && !watchError && data && <details className="diagnostics"><summary>Diagnostic details<span>{data.recordCount} records</span></summary><dl className="saved-data-summary">
       <div><dt>Saved file modified</dt><dd>{time(view.fileModifiedAt)}</dd></div>
       <div><dt>Read at</dt><dd>{time(view.readAt)}</dd></div>
       <div><dt>Client version / build / interface</dt><dd>{data.clientVersion ?? 'Unknown'} / {data.clientBuild ?? 'Unknown'} / {data.clientInterface ?? 'Unknown'}</dd></div>
@@ -134,8 +140,13 @@ export function SavedVariables() {
       <div><dt>Latest scoreboard rows</dt><dd>{data.latestScoreboardRows ?? 'Unknown'}</dd></div>
       <div><dt>Raw winner code (unverified)</dt><dd>{data.rawWinner ?? 'Unknown'}</dd></div>
       <div><dt>Latest capture marker</dt><dd>{data.lastCapturePhase ?? 'Unknown'}</dd></div>
-    </dl>}
-    {!busy && view?.selectedSource && <MatchHistory key={`${view.installation}/${view.selectedSource}`} />}
-    <p className="saved-data-note">Use /reload or log out in WoW to save new data. Keep the companion open for automatic updates; Refresh saved data is also available. SavedVariables do not update continuously. File freshness and device connectivity do not establish current in-game participation, account ownership or a verified match.</p>
-  </section>;
+    </dl></details>}
+    </div></section>
+    <aside className="info-note"><Icon name="game" /><p>Use <code>/reload</code> or log out in WoW to save new data. Keep the companion open for automatic updates. SavedVariables do not update continuously.</p></aside>
+    <p className="saved-data-note">File freshness and device connectivity do not establish current in-game participation, account ownership or a verified match.</p>
+    </section>
+    <section id="panel-history" role="tabpanel" aria-labelledby="tab-history" hidden={activeTab !== 'history'} tabIndex={0}>
+      {view?.selectedSource ? <MatchHistory key={`${view.installation}/${view.selectedSource}`} /> : <div className="empty-state"><span className="empty-icon"><Icon name="history" /></span><h2>Choose your game account</h2><p>Select your Forever installation and saved-data account to load completed captures on this PC.</p><button className="button-primary" onClick={() => onTabChange('game')}>Set up game data<Icon name="arrow" /></button></div>}
+    </section>
+  </>;
 }

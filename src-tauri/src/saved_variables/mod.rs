@@ -35,7 +35,6 @@ pub enum Status {
     TooLarge,
     InvalidData,
     UnsupportedSchema,
-    UnsupportedClient,
     UnknownClient,
     Ready,
 }
@@ -53,7 +52,7 @@ impl Status {
                 "RBGSCompatibility is not installed. Install the diagnostic addon, enable it in-game, then reload or log out."
             }
             Self::UnsupportedAddon => {
-                "The installed addon metadata is unsupported. Use the diagnostic addon for interface 16001 with RBGSCompatibilityData."
+                "We could not read the installed RBGSCompatibility addon. Reinstall the latest version, enable it in WoW, then use /reload or log out."
             }
             Self::NoSavedData => {
                 "No diagnostic SavedVariables source is available yet. Enable RBGSCompatibility, log into a character, then use /reload or log out and refresh."
@@ -76,11 +75,8 @@ impl Status {
             Self::UnsupportedSchema => {
                 "This SavedVariables schema is unsupported. Check the addon/companion versions."
             }
-            Self::UnsupportedClient => {
-                "The saved client build has not been checked with this diagnostic reader. Data is shown for inspection only."
-            }
             Self::UnknownClient => {
-                "No usable client build was saved. Reload or log out with the diagnostic addon enabled, then refresh."
+                "The saved data is missing valid game version details. Enable RBGSCompatibility, then use /reload or log out."
             }
             Self::Ready => {
                 "Saved diagnostic data read successfully. These are persisted observations, not verified match evidence."
@@ -276,7 +272,9 @@ fn check_addon(root: &Path) -> Result<(), Status> {
             .strip_prefix("## SavedVariables:")
             .map(str::trim)
     });
-    if interface != Some("16001") || variables != Some("RBGSCompatibilityData") {
+    if !interface.is_some_and(parser::valid_game_build)
+        || variables != Some("RBGSCompatibilityData")
+    {
         return Err(Status::UnsupportedAddon);
     }
     Ok(())
@@ -618,8 +616,7 @@ impl SourceManager {
             }
             let (summary, metadata) = stable_read(&root, account)?;
             let status = match summary.compatibility {
-                Compatibility::ObservedDiagnosticBuild => Status::Ready,
-                Compatibility::UnsupportedClient => Status::UnsupportedClient,
+                Compatibility::ReadableData => Status::Ready,
                 Compatibility::UnknownClient => Status::UnknownClient,
             };
             view.file_modified_at = metadata.modified().ok().and_then(seconds);
@@ -910,6 +907,28 @@ mod tests {
         assert!(current.data.is_none());
         fs::write(first, "RBGSCompatibilityData={").unwrap();
         assert!(manager.update().is_none());
+    }
+    #[test]
+    fn diagnostic_toc_interface_is_metadata_but_the_saved_root_remains_required() {
+        let root = installation();
+        let toc = root
+            .path()
+            .join("Interface/AddOns/RBGSCompatibility/RBGSCompatibility.toc");
+        let canonical = fs::canonicalize(root.path()).unwrap();
+        fs::write(
+            &toc,
+            "## Interface: 16100\n## SavedVariables: RBGSCompatibilityData\n",
+        )
+        .unwrap();
+        assert!(check_addon(&canonical).is_ok());
+        fs::write(&toc, "## Interface: 16100\n## SavedVariables: OtherData\n").unwrap();
+        assert_eq!(check_addon(&canonical), Err(Status::UnsupportedAddon));
+        fs::write(
+            &toc,
+            "## Interface: bad\n## SavedVariables: RBGSCompatibilityData\n",
+        )
+        .unwrap();
+        assert_eq!(check_addon(&canonical), Err(Status::UnsupportedAddon));
     }
     #[test]
     fn persists_the_choice_and_requires_explicit_selection_for_multiple_accounts() {

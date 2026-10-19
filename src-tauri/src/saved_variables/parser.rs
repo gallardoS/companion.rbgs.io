@@ -333,9 +333,23 @@ pub struct Summary {
 #[derive(Clone, Copy, Debug, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum Compatibility {
-    ObservedDiagnosticBuild,
-    UnsupportedClient,
+    ReadableData,
     UnknownClient,
+}
+
+pub(super) fn valid_game_version(value: &str) -> bool {
+    !value.is_empty()
+        && value.len() <= 32
+        && value
+            .split('.')
+            .all(|part| !part.is_empty() && part.bytes().all(|b| b.is_ascii_digit()))
+}
+
+pub(super) fn valid_game_build(value: &str) -> bool {
+    !value.is_empty()
+        && value.len() <= 10
+        && value.bytes().all(|b| b.is_ascii_digit())
+        && value.bytes().any(|b| b != b'0')
 }
 
 fn display(value: Option<&Value>, maximum: usize) -> Option<String> {
@@ -481,11 +495,19 @@ pub fn parse(bytes: &[u8]) -> Result<Summary> {
             }
             "identity" => {
                 let given_name = display(payload.get("name").and_then(|v| v.position(1)), 128);
-                // Only the observed Forever 70338 signature establishes the surname position.
-                summary.observed_character = if summary.client_version.as_deref() == Some("1.60.1")
+                let declared_identity = payload.get("identityProfile").and_then(Value::text)
+                    == Some("FOREVER_GIVEN_SURNAME_V1");
+                let legacy_identity = summary.client_version.as_deref() == Some("1.60.1")
                     && summary.client_build.as_deref() == Some("70338")
-                    && summary.client_interface.as_deref() == Some("16001")
-                {
+                    && summary.client_interface.as_deref() == Some("16001");
+                let declared_shape = payload
+                    .get("name")
+                    .and_then(|name| name.get("count"))
+                    .and_then(Value::integer)
+                    == Some(2);
+                summary.observed_character = if declared_identity && !declared_shape {
+                    None
+                } else if declared_identity || legacy_identity {
                     given_name
                         .zip(display(
                             payload.get("name").and_then(|v| v.position(2)),
@@ -519,13 +541,12 @@ pub fn parse(bytes: &[u8]) -> Result<Summary> {
         &summary.client_interface,
     ) {
         (Some(version), Some(build), Some(interface))
-            if version == "1.60.1"
-                && interface == "16001"
-                && ["70170", "70245", "70291", "70338"].contains(&build.as_str()) =>
+            if valid_game_version(version)
+                && valid_game_build(build)
+                && valid_game_build(interface) =>
         {
-            Compatibility::ObservedDiagnosticBuild
+            Compatibility::ReadableData
         }
-        (Some(_), Some(_), Some(_)) => Compatibility::UnsupportedClient,
         _ => Compatibility::UnknownClient,
     };
     Ok(summary)
@@ -546,6 +567,43 @@ mod tests {
         let summary = parse(source.as_bytes()).unwrap();
         assert_eq!(summary.observed_character.as_deref(), Some("André Éclair"));
         assert_eq!(summary.observed_realm.as_deref(), Some("Fixture Realm"));
+    }
+    #[test]
+    fn declared_identity_profile_and_diagnostic_data_work_across_patches() {
+        let source = wrapped(
+            r#"{kind="environment",payload={build={"1.61.0","100001","date","16100",count=4}}},
+            {kind="identity",payload={identityProfile="FOREVER_GIVEN_SURNAME_V1",name={"André","Éclair",count=2},realm={"Fixture Realm",count=1}}}"#,
+        );
+        let summary = parse(source.as_bytes()).unwrap();
+        assert_eq!(summary.compatibility, Compatibility::ReadableData);
+        assert_eq!(summary.observed_character.as_deref(), Some("André Éclair"));
+        assert_eq!(summary.client_version.as_deref(), Some("1.61.0"));
+        assert_eq!(summary.client_build.as_deref(), Some("100001"));
+        assert_eq!(summary.client_interface.as_deref(), Some("16100"));
+        let changed_shape = source.replace("count=2", "count=3");
+        assert!(
+            parse(changed_shape.as_bytes())
+                .unwrap()
+                .observed_character
+                .is_none()
+        );
+    }
+    #[test]
+    fn malformed_game_metadata_stays_unknown() {
+        for (version, build, interface) in [
+            ("1..61", "100001", "16100"),
+            ("1.61.0", "000", "16100"),
+            ("1.61.0", "bad", "16100"),
+            ("1.61.0", "100001", "0"),
+        ] {
+            let source = wrapped(&format!(
+                "{{kind=\"environment\",payload={{build={{\"{version}\",\"{build}\",\"date\",\"{interface}\",count=4}}}}}}"
+            ));
+            assert_eq!(
+                parse(source.as_bytes()).unwrap().compatibility,
+                Compatibility::UnknownClient
+            );
+        }
     }
     #[test]
     fn other_client_signatures_do_not_treat_second_name_return_as_surname() {
@@ -739,14 +797,11 @@ mod tests {
             assert_eq!(summary.client_build.as_deref(), Some(build));
             assert_eq!(summary.raw_winner.as_deref(), Some(winner));
             assert_eq!(summary.latest_scoreboard_rows, Some(30));
-            assert_eq!(
-                summary.compatibility,
-                Compatibility::ObservedDiagnosticBuild
-            );
+            assert_eq!(summary.compatibility, Compatibility::ReadableData);
         }
     }
     #[test]
-    fn parses_full_bounded_history_and_marks_unknown_builds() {
+    fn parses_full_bounded_history_without_rejecting_new_builds() {
         let row = "{values={\"Synthetic\",\"0\",count=2}}";
         let record =
             "{kind=\"scoreboard\",payload={rows={".to_owned() + &vec![row; 40].join(",") + "}}}";
@@ -763,6 +818,6 @@ mod tests {
             .as_bytes(),
         )
         .unwrap();
-        assert_eq!(summary.compatibility, Compatibility::UnsupportedClient);
+        assert_eq!(summary.compatibility, Compatibility::ReadableData);
     }
 }

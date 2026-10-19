@@ -40,7 +40,7 @@ Install and enable `RBGSCompatibility` (interface 16001). Choose the account sou
 
 Only the selected diagnostic SavedVariables file is read. One-second checks compare bounded bytes and modification time, wait for matching samples, then verify stability before parsing. Invalid or removed files clear the previous summary. A suspended webview can delay checks. **Refresh saved data** remains available.
 
-The data-only Lua reader executes no Lua and rejects unsafe paths, duplicate keys, unknown schemas and executable content. Limits: 2,000,000 bytes, 30 nesting levels, 200,000 entries, 300 records and 16,384 bytes per string. Unchecked client builds are marked explicitly. Saved observations are not verified match evidence. No game files are modified or uploaded.
+The data-only Lua reader executes no Lua and rejects unsafe paths, duplicate keys, unknown schemas and executable content. Limits: 2,000,000 bytes, 30 nesting levels, 200,000 entries, 300 records and 16,384 bytes per string. Version/build/interface are diagnostic metadata; a new well-formed build does not by itself trigger a compatibility warning. Missing metadata and unsupported data formats remain explicit. Saved observations are not verified match evidence. No game files are modified or uploaded.
 
 The diagnostic Python reader and sanitized fixtures are in `tools/`:
 
@@ -50,7 +50,7 @@ python -m unittest discover -s tools -p test_parse_probe.py
 
 ## Local match history
 
-Install and enable the product `RBGS` addon alongside the diagnostic addon. **Completed matches** reads the selected account's separate `RBGS.lua` / `RBGSMatchData` schema 2, currently limited to the controlled Darkspear/70338 adapter. Expand a completed capture to inspect its final roster and statistics. The winning faction is shown; player identity and match verification are not inferred from scoreboard names.
+Install and enable the product `RBGS` addon alongside the diagnostic addon. **Completed matches** reads the selected account's separate `RBGS.lua` / `RBGSMatchData` schema 2, using the controlled Darkspear data adapter. New captures use `darkspear-scoreboard-v1`; historical `darkspear-70338-test-1` captures remain readable. Game version, build and interface are preserved rather than compared against a closed patch list. Known adapter, product, supported map and bounded capture structure remain required. Expand a completed capture to inspect its final roster and statistics. The winning faction is shown; player identity and match verification are not inferred from scoreboard names.
 
 History refreshes every five seconds or through **Refresh match history**. Stable, bounded reads reuse unchanged data. The addon retains eight attempts; the companion preserves every observed revision transactionally in `capture-inbox-v1.sqlite3` under its Windows local-data directory. Saved captures survive restart, missing game files and clearing addon history.
 

@@ -180,11 +180,13 @@ fn valid(record: &Record) -> bool {
     let c = &record.capture;
     let client = &record.client;
     let supported = client.product == "wow_classic_beta"
-        && client.game_version == "1.60.1"
-        && client.game_build == "70338"
-        && client.interface == 16001
+        && parser::valid_game_version(&client.game_version)
+        && parser::valid_game_build(&client.game_build)
+        && client.interface > 0
+        && client.interface <= 9007199254740991
         && text(&client.addon_version)
-        && client.adapter_version == "darkspear-70338-test-1";
+        && ["darkspear-scoreboard-v1", "darkspear-70338-test-1"]
+            .contains(&client.adapter_version.as_str());
     if !supported
         || !uuid(&record.capture_id)
         || !(1..=2147483647).contains(&record.capture_revision)
@@ -404,10 +406,13 @@ impl HistoryCache {
                 .map_err(|_| Status::MissingAddon)?;
             let (metadata, _) = read_bounded(&toc, MAX_TOC_BYTES)?;
             let toc = std::str::from_utf8(&metadata).map_err(|_| Status::UnsupportedAddon)?;
-            if !toc.lines().any(|l| l.trim() == "## Interface: 16001")
-                || !toc
-                    .lines()
-                    .any(|l| l.trim() == "## SavedVariables: RBGSMatchData")
+            if !toc.lines().any(|line| {
+                line.trim()
+                    .strip_prefix("## Interface:")
+                    .is_some_and(|value| parser::valid_game_build(value.trim()))
+            }) || !toc
+                .lines()
+                .any(|l| l.trim() == "## SavedVariables: RBGSMatchData")
             {
                 return Err(Status::UnsupportedAddon);
             }
@@ -550,6 +555,64 @@ mod tests {
         format!("RBGSMatchData={}", lua(value)).into_bytes()
     }
     #[test]
+    fn future_patches_preserve_version_metadata_and_legacy_captures() {
+        let legacy = fixture();
+        assert_eq!(parse_history(&bytes(&legacy)).unwrap().matches.len(), 1);
+        for adapter in ["darkspear-scoreboard-v1", "darkspear-70338-test-1"] {
+            let mut value = legacy.clone();
+            let client = &mut value["captures"][0]["client"];
+            client["gameVersion"] = json!("1.61.0");
+            client["gameBuild"] = json!("100001");
+            client["interface"] = json!(16100);
+            client["adapterVersion"] = json!(adapter);
+            let history = parse_history(&bytes(&value)).unwrap();
+            assert_eq!(history.matches[0].build, "100001");
+            let snapshots = snapshots(&bytes(&value)).unwrap();
+            assert_eq!(snapshots[0]["client"], value["captures"][0]["client"]);
+        }
+        assert_eq!(fixture(), legacy);
+    }
+    #[test]
+    fn new_builds_still_require_known_adapters_valid_metadata_and_supported_maps() {
+        for (field, invalid) in [
+            ("gameVersion", json!("1..61")),
+            ("gameVersion", json!("")),
+            ("gameBuild", json!("")),
+            ("gameBuild", json!("000")),
+            ("gameBuild", json!("100000000000")),
+            ("interface", json!(0)),
+            ("adapterVersion", json!("unknown-adapter")),
+            ("product", json!("wow")),
+        ] {
+            let mut value = fixture();
+            value["captures"][0]["client"][field] = invalid;
+            assert!(parse_history(&bytes(&value)).is_err(), "{field}");
+        }
+        let mut value = fixture();
+        value["captures"][0]["capture"]["map"]["gameMapId"] = json!(489);
+        assert!(parse_history(&bytes(&value)).is_err());
+    }
+    #[test]
+    fn toc_interface_updates_do_not_disable_the_product_reader() {
+        let dir = installation();
+        fs::write(
+            dir.path().join("Interface/AddOns/RBGS/RBGS.toc"),
+            "## Interface: 16100\n## SavedVariables: RBGSMatchData",
+        )
+        .unwrap();
+        fs::write(
+            dir.path().join("WTF/Account/one/SavedVariables/RBGS.lua"),
+            bytes(&fixture()),
+        )
+        .unwrap();
+        let config = Config {
+            version: 1,
+            installation: fs::canonicalize(dir.path()).unwrap(),
+            account: Some("one".into()),
+        };
+        assert_eq!(HistoryCache::default().read(Some(&config)).matches.len(), 1);
+    }
+    #[test]
     fn reads_real_sanitized_final_and_never_exports_codes_or_guids() {
         let history = parse_history(&bytes(&fixture())).unwrap();
         assert_eq!(history.matches.len(), 1);
@@ -610,7 +673,7 @@ mod tests {
                 "/captures/0/capture/outcome/winningObservedTeamKey",
                 json!("2"),
             ),
-            ("/captures/0/client/gameBuild", json!("99999")),
+            ("/captures/0/client/gameBuild", json!("not-a-build")),
             (
                 "/captures/0/capture/roster/0/damage",
                 json!(9007199254740992u64),

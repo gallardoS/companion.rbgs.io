@@ -33,7 +33,7 @@ function valid(value: unknown): value is View {
       && number(m.revision) && m.revision !== null && m.revision >= 1 && m.revision <= 2147483647 && identity(m.character)
       && m.map && m.map.profile === 'DARKSPEAR_DIAGNOSTIC' && text(m.map.observedName) && m.map.gameMapId === 2997
       && text(m.startedAt) && Number.isFinite(Date.parse(m.startedAt)) && text(m.endedAt) && Number.isFinite(Date.parse(m.endedAt))
-      && ['0', '1'].includes(m.winner) && m.build === '70338' && Array.isArray(m.roster) && m.roster.length >= 1 && m.roster.length <= 40
+      && ['0', '1'].includes(m.winner) && typeof m.build === 'string' && /^[0-9]{1,10}$/.test(m.build) && /[1-9]/.test(m.build) && Array.isArray(m.roster) && m.roster.length >= 1 && m.roster.length <= 40
       && m.roster.every(row => row && identity(row.character) && [null, '0', '1'].includes(row.observedTeamKey)
         && [row.killingBlows, row.honorableKills, row.deaths, row.damage, row.healing].every(number)));
 }

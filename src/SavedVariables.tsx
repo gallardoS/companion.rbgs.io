@@ -28,7 +28,7 @@ function validView(value: unknown): value is SourceView {
   return !!data && data.schema === 1 && Number.isSafeInteger(data.recordCount) && data.recordCount >= 0 && data.recordCount <= 300
     && [data.clientVersion, data.clientBuild, data.clientInterface, data.observedCharacter, data.observedRealm, data.observedMap, data.rawWinner, data.lastCapturePhase].every(nullableString)
     && [data.lastRecordAt, data.latestScoreboardRows].every(nullableNumber)
-    && ['OBSERVED_DIAGNOSTIC_BUILD', 'UNSUPPORTED_CLIENT', 'UNKNOWN_CLIENT'].includes(data.compatibility);
+    && ['READABLE_DATA', 'OBSERVED_DIAGNOSTIC_BUILD', 'UNSUPPORTED_CLIENT', 'UNKNOWN_CLIENT'].includes(data.compatibility);
 }
 function time(value: number | null): string {
   if (value === null) return 'Unknown';

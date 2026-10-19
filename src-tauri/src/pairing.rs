@@ -51,6 +51,8 @@ struct TokenResponse {
 pub struct Connection {
     device_id: String,
     pub(crate) account_id: String,
+    #[serde(default)]
+    pub(crate) account_name: Option<String>,
     scope: String,
     local_storage_warning: Option<String>,
     #[serde(default)]
@@ -347,6 +349,22 @@ pub(crate) async fn verify_token(token: &str) -> Result<Connection, String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn connection_name_is_optional_for_older_servers_and_reaches_the_ui() {
+        let mut payload = serde_json::json!({
+            "deviceId": "device", "accountId": "account", "scope": SCOPE,
+            "localStorageWarning": null
+        });
+        let old: Connection = serde_json::from_value(payload.clone()).unwrap();
+        assert!(old.account_name.is_none());
+        payload["accountName"] = serde_json::json!("BattleTag#1234");
+        let current: Connection = serde_json::from_value(payload).unwrap();
+        assert_eq!(current.account_name.as_deref(), Some("BattleTag#1234"));
+        let ui = serde_json::to_value(current).unwrap();
+        assert_eq!(ui["accountName"], "BattleTag#1234");
+        assert!(ui.get("credentialFingerprint").is_none());
+    }
+
     #[test]
     fn environment_defaults_release_policy_and_destination_allowlist() {
         assert_eq!(configured_origin(true, None), "https://api.rbgs.io");

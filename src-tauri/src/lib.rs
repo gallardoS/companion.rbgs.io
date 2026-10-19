@@ -7,10 +7,12 @@ pub fn run() {
         .plugin(tauri_plugin_deep_link::init())
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_notification::init())
         .manage(pairing::PairingState::default())
         .manage(web_connect::WebConnectState::default())
         .manage(saved_variables::SavedVariablesState::default())
         .manage(saved_variables::transport::TransportState::default())
+        .manage(assignments::AssignmentState::default())
         .setup(presence::setup)
         .invoke_handler(tauri::generate_handler![
             pairing::start_pairing,
@@ -22,6 +24,8 @@ pub fn run() {
             saved_variables::saved_variables_update,
             saved_variables::history::match_history,
             saved_variables::transport::list_capture_assignments,
+            assignments::assignment_activity,
+            assignments::open_test_match,
             saved_variables::transport::issue_capture_assignment,
             saved_variables::transport::sync_captures,
             saved_variables::choose_forever_installation,
@@ -31,6 +35,7 @@ pub fn run() {
         .run(tauri::generate_context!())
         .expect("failed to start rbgs.io companion");
 }
+mod assignments;
 mod pairing;
 mod presence;
 mod saved_variables;

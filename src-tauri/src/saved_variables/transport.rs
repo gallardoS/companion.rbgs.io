@@ -21,6 +21,7 @@ struct Session {
     token: String,
     account: String,
     endpoint: String,
+    fingerprint: String,
 }
 #[derive(Debug)]
 struct Failure {
@@ -38,6 +39,7 @@ impl Session {
             client: crate::pairing::client()?,
             token,
             account: connection.account_id,
+            fingerprint: connection.credential_fingerprint,
             endpoint: crate::pairing::origin().into(),
         })
     }
@@ -301,8 +303,14 @@ fn save_issue(path: &Path, pending: &PendingIssue) -> Result<(), String> {
 }
 #[tauri::command]
 pub async fn list_capture_assignments(app: tauri::AppHandle) -> Result<Value, String> {
+    crate::assignments::refresh_list(&app).await
+}
+pub(crate) async fn fetch_assignments(
+    app: &tauri::AppHandle,
+) -> Result<(String, String, Value), String> {
     let session = Session::new().await?;
-    let path = inbox::path(&app)?;
+    let fingerprint = session.fingerprint.clone();
+    let path = inbox::path(app)?;
     let (list, _) = session
         .request(reqwest::Method::GET, "/api/v1/companion/assignments", None)
         .await
@@ -329,7 +337,7 @@ pub async fn list_capture_assignments(app: tauri::AppHandle) -> Result<Value, St
         }
         result.push(view);
     }
-    Ok(Value::Array(result))
+    Ok((session.account, fingerprint, Value::Array(result)))
 }
 #[tauri::command]
 pub async fn issue_capture_assignment(
@@ -809,6 +817,7 @@ mod tests {
         });
         (
             Session {
+                fingerprint: "fixture".into(),
                 client: reqwest::Client::builder()
                     .timeout(Duration::from_secs(5))
                     .redirect(reqwest::redirect::Policy::none())

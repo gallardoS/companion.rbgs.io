@@ -29,6 +29,8 @@ tauri-plugin-dialog = "2.8.2"
 tauri-plugin-deep-link = "2"
 tauri-plugin-single-instance = { version = "2", features = ["deep-link"] }
 tauri-plugin-opener = "2"
+tauri-plugin-notification = "=2.7.0"
+chrono = { version = "0.4.45", default-features = false, features = ["std"] }
 
 [dev-dependencies]
 tempfile = "3"

@@ -126,7 +126,7 @@ fn optional_text(value: &Option<String>) -> bool {
 fn identity(value: &Identity) -> bool {
     text(&value.name) && optional_text(&value.realm) && optional_text(&value.guid)
 }
-pub(super) fn uuid(value: &str) -> bool {
+pub(crate) fn uuid(value: &str) -> bool {
     value.len() == 36
         && value.bytes().enumerate().all(|(i, byte)| {
             if [8, 13, 18, 23].contains(&i) {

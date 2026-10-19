@@ -4,6 +4,8 @@ use tauri_plugin_deep_link::DeepLinkExt;
 pub(crate) fn allowed_link(url: &str) -> bool {
     url == "rbgs-companion://open"
         || url == "rbgs-companion://open/"
+        || url == "rbgs-companion://matches"
+        || url == "rbgs-companion://matches/"
         || crate::web_connect::ticket(url).is_some()
 }
 fn receive(app: &tauri::AppHandle, url: &str) {
@@ -11,6 +13,9 @@ fn receive(app: &tauri::AppHandle, url: &str) {
         return;
     }
     show(app);
+    if url == "rbgs-companion://matches" || url == "rbgs-companion://matches/" {
+        crate::assignments::open_latest(app.clone());
+    }
     if let Some(secret) = crate::web_connect::ticket(url) {
         let app = app.clone();
         let secret = secret.to_owned();
@@ -30,6 +35,7 @@ pub(crate) fn show(app: &tauri::AppHandle) {
 pub(crate) fn setup(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
     // Freeze the launch environment before any pairing, heartbeat or inbox work.
     crate::pairing::client().map_err(std::io::Error::other)?;
+    crate::assignments::setup(app.handle());
     #[cfg(desktop)]
     if let Err(error) = crate::tray::setup(app) {
         // Keep normal close behavior if the tray cannot provide a way back in.
@@ -74,10 +80,12 @@ mod tests {
     #[test]
     fn launch_links_cannot_supply_tokens_destinations_or_commands() {
         assert!(allowed_link("rbgs-companion://open"));
+        assert!(allowed_link("rbgs-companion://matches"));
         for bad in [
             "rbgs-companion://connect",
             "rbgs-companion://open?token=x",
             "rbgs-companion://open#token=x",
+            "rbgs-companion://matches?capture=untrusted",
             "https://rbgs.io",
             "rbgs-companion://evil/open",
         ] {

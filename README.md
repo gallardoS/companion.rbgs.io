@@ -79,3 +79,7 @@ Rust sends an authenticated heartbeat approximately every 15 seconds, independen
 Browser pairing uses a separate temporary approval secret; the polling secret and native credential never enter the browser. Local debug builds open `http://localhost:5173/settings`; release builds open `https://rbgs.io/settings`. The web asks for explicit approval of the account and requested permissions.
 
 **Open companion** in the web uses `rbgs-companion://open`. The installed NSIS package registers the scheme; debug Windows builds register it on startup. Start the companion once before testing the local web button. A single instance opens or focuses its window. Launch links accept no credentials, server destinations or commands. If the browser cannot open the link, start the application from Windows.
+
+## Automatic test match alerts
+
+While the companion is running and connected with match access, its native process checks for new test assignments every five seconds (15 seconds after a failed check), including when minimized or hidden in the tray. The first successful list after launch or an account change is a silent baseline. New available tests request Windows attention and display **Test match ready** when the window is not focused; the companion never brings itself to the foreground for an incoming test. Opening a live notification rechecks the current account and assignment before opening its card. Existing tests remain visible without repeated alerts.

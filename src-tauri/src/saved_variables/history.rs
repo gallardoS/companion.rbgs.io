@@ -393,37 +393,155 @@ fn parse_history(bytes: &[u8]) -> Result<HistoryView, Status> {
         queue: None,
     })
 }
+struct ProductFile {
+    root: PathBuf,
+    account: String,
+    path: PathBuf,
+    bytes: Vec<u8>,
+    metadata: Metadata,
+}
+fn product_file(config: Option<&Config>) -> Result<ProductFile, Status> {
+    let config = config.ok_or(Status::NotConfigured)?;
+    let root = validate_installation(&config.installation)?;
+    let toc = child(&root, Path::new("Interface/AddOns/RBGS/RBGS.toc"), false)
+        .map_err(|_| Status::MissingAddon)?;
+    let (metadata, _) = read_bounded(&toc, MAX_TOC_BYTES)?;
+    let toc = std::str::from_utf8(&metadata).map_err(|_| Status::UnsupportedAddon)?;
+    if !toc.lines().any(|line| {
+        line.trim()
+            .strip_prefix("## Interface:")
+            .is_some_and(|value| parser::valid_game_build(value.trim()))
+    }) || !toc
+        .lines()
+        .any(|l| l.trim() == "## SavedVariables: RBGSMatchData")
+    {
+        return Err(Status::UnsupportedAddon);
+    }
+    let available = sources(&root)?;
+    if available.is_empty() {
+        return Err(Status::NoSavedData);
+    }
+    let account = config.account.as_ref().ok_or(Status::SelectSource)?;
+    if !available.iter().any(|s| &s.id == account) {
+        return Err(Status::SourceUnavailable);
+    }
+    let relative = Path::new("WTF/Account")
+        .join(account)
+        .join("SavedVariables/RBGS.lua");
+    if !root.join(&relative).exists() {
+        return Err(Status::NoSavedData);
+    }
+    let path = child(&root, &relative, false)?;
+    let (bytes, metadata) = read_bounded(&path, MAX_BYTES)?;
+    Ok(ProductFile {
+        root,
+        account: account.clone(),
+        path,
+        bytes,
+        metadata,
+    })
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub(super) struct GameView {
+    pub(super) status: Status,
+    message: &'static str,
+    file_modified_at: Option<u64>,
+    character_name: Option<String>,
+    realm: Option<String>,
+    record_count: usize,
+}
+fn game_message(status: Status) -> &'static str {
+    match status {
+        Status::Ready => "RBGS is installed and its saved data can be read.",
+        Status::NotConfigured | Status::WrongClient => {
+            "Choose your Forever beta folder in Settings."
+        }
+        Status::SelectSource => "Choose the WoW account you use to play Forever.",
+        Status::MissingAddon => {
+            "Install the rbgs.io addon (RBGS) in WoW, enable it, then use /reload or log out."
+        }
+        Status::UnsupportedAddon => {
+            "Check that the rbgs.io addon (RBGS) is installed correctly and up to date."
+        }
+        Status::NoSavedData => {
+            "No RBGS data saved yet. Enable rbgs.io in WoW, log into your character, then use /reload or log out."
+        }
+        Status::UnstableFile => "WoW is saving your match data. Wait for it to finish.",
+        Status::TooLarge => {
+            "The RBGS file is too large to read (over 2 MB). Back it up before getting help."
+        }
+        Status::InvalidData | Status::UnsupportedSchema | Status::UnknownClient => {
+            "Cannot read the RBGS data. Check that the addon and companion are up to date. Your saved data has not been changed."
+        }
+        Status::SourceUnavailable => {
+            "Cannot open your RBGS data. Check your WoW folder and account in Settings."
+        }
+    }
+}
+pub(super) fn product_sample(
+    config: Option<&Config>,
+) -> Result<(Vec<u8>, Option<SystemTime>), Status> {
+    let file = product_file(config)?;
+    Ok((file.bytes, file.metadata.modified().ok()))
+}
+pub(super) fn game_view(config: Option<&Config>) -> GameView {
+    let mut view = GameView {
+        status: Status::NotConfigured,
+        message: game_message(Status::NotConfigured),
+        file_modified_at: None,
+        character_name: None,
+        realm: None,
+        record_count: 0,
+    };
+    let result = (|| {
+        let file = product_file(config)?;
+        std::thread::sleep(Duration::from_millis(250));
+        let after_path = child(
+            &file.root,
+            Path::new("WTF/Account")
+                .join(&file.account)
+                .join("SavedVariables/RBGS.lua")
+                .as_path(),
+            false,
+        )
+        .map_err(|_| Status::UnstableFile)?;
+        let (after, metadata) = read_bounded(&after_path, MAX_BYTES)?;
+        if file.path != after_path
+            || file.bytes != after
+            || file.metadata.modified().ok() != metadata.modified().ok()
+        {
+            return Err(Status::UnstableFile);
+        }
+        let records = snapshots(&file.bytes)?;
+        view.record_count = records.len();
+        if let Some(record) = records.last() {
+            view.character_name = record["observedCharacter"]["name"]
+                .as_str()
+                .map(str::to_owned);
+            view.realm = record["observedCharacter"]["realm"]
+                .as_str()
+                .map(str::to_owned);
+        }
+        view.file_modified_at = file.metadata.modified().ok().and_then(seconds);
+        Ok(Status::Ready)
+    })();
+    view.status = result.unwrap_or_else(|status| status);
+    view.message = game_message(view.status);
+    view
+}
+
 impl HistoryCache {
     pub(super) fn read(&mut self, config: Option<&Config>) -> HistoryView {
         let result = (|| {
-            let config = config.ok_or(Status::NotConfigured)?;
-            let account = config.account.as_ref().ok_or(Status::SelectSource)?;
-            let root = validate_installation(&config.installation)?;
-            if !sources(&root)?.iter().any(|s| &s.id == account) {
-                return Err(Status::SourceUnavailable);
-            }
-            let toc = child(&root, Path::new("Interface/AddOns/RBGS/RBGS.toc"), false)
-                .map_err(|_| Status::MissingAddon)?;
-            let (metadata, _) = read_bounded(&toc, MAX_TOC_BYTES)?;
-            let toc = std::str::from_utf8(&metadata).map_err(|_| Status::UnsupportedAddon)?;
-            if !toc.lines().any(|line| {
-                line.trim()
-                    .strip_prefix("## Interface:")
-                    .is_some_and(|value| parser::valid_game_build(value.trim()))
-            }) || !toc
-                .lines()
-                .any(|l| l.trim() == "## SavedVariables: RBGSMatchData")
-            {
-                return Err(Status::UnsupportedAddon);
-            }
-            let relative = Path::new("WTF/Account")
-                .join(account)
-                .join("SavedVariables/RBGS.lua");
-            if !root.join(&relative).exists() {
-                return Err(Status::NoSavedData);
-            }
-            let path = child(&root, &relative, false)?;
-            let (bytes, before) = read_bounded(&path, MAX_BYTES)?;
+            let ProductFile {
+                root,
+                account,
+                path,
+                bytes,
+                metadata: before,
+            } = product_file(config)?;
             let key = (root.clone(), account.clone());
             if self.key.as_ref() == Some(&key) && self.bytes == bytes {
                 if let Some(view) = &self.view {
@@ -431,6 +549,9 @@ impl HistoryCache {
                 }
             }
             std::thread::sleep(Duration::from_millis(250));
+            let relative = Path::new("WTF/Account")
+                .join(&account)
+                .join("SavedVariables/RBGS.lua");
             let after_path = child(&root, &relative, false).map_err(|_| Status::UnstableFile)?;
             let (after, stat) = read_bounded(&after_path, MAX_BYTES)?;
             if path != after_path
@@ -704,6 +825,137 @@ mod tests {
         assert!(parse_history(&bytes(&value)).is_err());
         let record = fixture()["captures"][0].clone();
         assert!(parse_history(&bytes(&json!({"schema":2,"captures":vec![record;9]}))).is_err());
+    }
+    #[test]
+    fn product_setup_and_monitoring_work_without_the_debugger() {
+        let dir = installation();
+        let data = dir.path().join("WTF/Account/one/SavedVariables/RBGS.lua");
+        fs::write(&data, bytes(&fixture())).unwrap();
+        let settings = tempfile::tempdir().unwrap();
+        let mut manager = SourceManager::default();
+        let chosen = manager
+            .choose(dir.path(), &settings.path().join("source.json"))
+            .unwrap();
+        assert_eq!(chosen.sources.len(), 2);
+        assert_eq!(chosen.game.status, Status::SelectSource);
+        let chosen = manager
+            .select("one", &settings.path().join("source.json"))
+            .unwrap();
+        assert_eq!(chosen.game.status, Status::Ready);
+        let game = serde_json::to_value(&chosen.game).unwrap();
+        let wire = serde_json::to_string(&game).unwrap();
+        assert!(game["characterName"].as_str().is_some());
+        assert!(!wire.contains("assignmentCode"));
+        assert!(!wire.contains("guid"));
+        assert!(
+            !dir.path()
+                .join("Interface/AddOns/RBGSCompatibility")
+                .exists()
+        );
+        manager.update();
+        manager.update();
+        fs::write(&data, "RBGSMatchData={schema=2,captures={}}").unwrap();
+        assert!(manager.update().is_none());
+        let empty = manager.update().unwrap();
+        assert_eq!(empty.game.status, Status::Ready);
+        assert_eq!(serde_json::to_value(&empty.game).unwrap()["recordCount"], 0);
+        fs::write(&data, "RBGSMatchData={broken").unwrap();
+        assert!(manager.update().is_none());
+        let invalid = manager.update().unwrap();
+        assert_eq!(invalid.game.status, Status::InvalidData);
+        assert!(serde_json::to_value(&invalid.game).unwrap()["characterName"].is_null());
+        fs::write(&data, bytes(&fixture())).unwrap();
+        assert!(manager.update().is_none());
+        assert_eq!(manager.update().unwrap().game.status, Status::Ready);
+        let mut restored = SourceManager::default();
+        restored.load(&settings.path().join("source.json")).unwrap();
+        assert_eq!(restored.view().game.status, Status::Ready);
+        assert!(
+            !restored
+                .history
+                .read(restored.config.as_ref())
+                .matches
+                .is_empty()
+        );
+    }
+    #[test]
+    fn product_summary_clears_the_previous_accounts_character() {
+        let dir = installation();
+        fs::write(
+            dir.path().join("WTF/Account/one/SavedVariables/RBGS.lua"),
+            bytes(&fixture()),
+        )
+        .unwrap();
+        let settings = tempfile::tempdir().unwrap();
+        let path = settings.path().join("source.json");
+        let mut manager = SourceManager::default();
+        manager.choose(dir.path(), &path).unwrap();
+        assert_eq!(
+            manager.select("one", &path).unwrap().game.status,
+            Status::Ready
+        );
+        let other = manager.select("two", &path).unwrap();
+        assert_eq!(other.game.status, Status::NoSavedData);
+        assert!(serde_json::to_value(&other.game).unwrap()["characterName"].is_null());
+    }
+    #[test]
+    fn diagnostic_addon_and_data_cannot_satisfy_product_setup() {
+        let dir = installation();
+        let account = dir.path().join("WTF/Account/one/SavedVariables");
+        let debugger = dir.path().join("Interface/AddOns/RBGSCompatibility");
+        fs::create_dir_all(&debugger).unwrap();
+        fs::write(debugger.join("RBGSCompatibility.lua"), "-- fixture").unwrap();
+        fs::write(
+            debugger.join("RBGSCompatibility.toc"),
+            "## Interface: 16001\n## SavedVariables: RBGSCompatibilityData",
+        )
+        .unwrap();
+        fs::write(
+            account.join("RBGSCompatibility.lua"),
+            "RBGSCompatibilityData={schema=1,records={}}",
+        )
+        .unwrap();
+        fs::remove_file(dir.path().join("Interface/AddOns/RBGS/RBGS.toc")).unwrap();
+        let config = Config {
+            version: 1,
+            installation: dir.path().to_owned(),
+            account: Some("one".into()),
+        };
+        assert_eq!(game_view(Some(&config)).status, Status::MissingAddon);
+    }
+    #[test]
+    fn invalid_debugger_does_not_change_product_readiness() {
+        let dir = installation();
+        let account = dir.path().join("WTF/Account/one/SavedVariables");
+        fs::write(account.join("RBGS.lua"), bytes(&fixture())).unwrap();
+        let debugger = dir.path().join("Interface/AddOns/RBGSCompatibility");
+        fs::create_dir_all(&debugger).unwrap();
+        fs::write(debugger.join("RBGSCompatibility.lua"), "-- fixture").unwrap();
+        fs::write(debugger.join("RBGSCompatibility.toc"), "invalid").unwrap();
+        fs::write(
+            account.join("RBGSCompatibility.lua"),
+            "RBGSCompatibilityData={broken",
+        )
+        .unwrap();
+        let mut manager = SourceManager::default();
+        manager.config = Some(Config {
+            version: 1,
+            installation: dir.path().to_owned(),
+            account: Some("one".into()),
+        });
+        let view = manager.view();
+        assert_eq!(view.status, Status::UnsupportedAddon);
+        assert_eq!(view.game.status, Status::Ready);
+        fs::write(
+            debugger.join("RBGSCompatibility.toc"),
+            "## Interface: 16001\n## SavedVariables: RBGSCompatibilityData",
+        )
+        .unwrap();
+        let view = manager.view();
+        assert_eq!(view.status, Status::InvalidData);
+        assert_eq!(view.game.status, Status::Ready);
+        fs::remove_file(account.join("RBGS.lua")).unwrap();
+        assert_eq!(manager.view().game.status, Status::NoSavedData);
     }
     fn installation() -> tempfile::TempDir {
         let dir = tempfile::tempdir().unwrap();

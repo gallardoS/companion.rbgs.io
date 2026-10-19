@@ -101,6 +101,7 @@ pub struct View {
     status: Status,
     message: &'static str,
     data: Option<Summary>,
+    game: history::GameView,
     file_modified_at: Option<u64>,
     read_at: Option<u64>,
 }
@@ -125,6 +126,7 @@ struct SourceManager {
 struct WatchSample {
     source: Option<(PathBuf, Option<String>)>,
     content: Result<Vec<u8>, Status>,
+    product: Result<(Vec<u8>, Option<SystemTime>), Status>,
     modified: Option<SystemTime>,
 }
 
@@ -536,6 +538,7 @@ impl SourceManager {
                 .as_ref()
                 .map(|config| (config.installation.clone(), config.account.clone())),
             content: Err(Status::NotConfigured),
+            product: history::product_sample(self.config.as_ref()),
             modified: None,
         };
         sample.content = (|| {
@@ -572,7 +575,7 @@ impl SourceManager {
         let view = self.view();
         // Retry a changing/partial file even without another notification.
         // Invalid stable content is reported once and retried when its bytes change.
-        if view.status != Status::UnstableFile {
+        if view.status != Status::UnstableFile && view.game.status != Status::UnstableFile {
             self.watch.accept();
         }
         Some(view)
@@ -588,6 +591,7 @@ impl SourceManager {
             status: Status::NotConfigured,
             message: Status::NotConfigured.message(),
             data: None,
+            game: history::game_view(self.config.as_ref()),
             file_modified_at: None,
             read_at: None,
         };
@@ -596,7 +600,6 @@ impl SourceManager {
                 return Err(Status::NotConfigured);
             };
             let root = validate_installation(&config.installation)?;
-            check_addon(&root)?;
             view.sources = sources(&root)?;
             if view.sources.is_empty() {
                 return Err(Status::NoSavedData);
@@ -614,6 +617,7 @@ impl SourceManager {
             if !root.join(&relative).exists() {
                 return Err(Status::NoSavedData);
             }
+            check_addon(&root)?;
             let (summary, metadata) = stable_read(&root, account)?;
             let status = match summary.compatibility {
                 Compatibility::ReadableData => Status::Ready,

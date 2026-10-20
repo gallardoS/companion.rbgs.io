@@ -1,6 +1,7 @@
 import { useEffect, useId, useRef, useState } from 'react';
 import { invoke } from '@tauri-apps/api/core';
 import { errorDetail, Feedback } from './Feedback';
+import { TestMatchProgress } from './TestMatchProgress';
 
 type Identity = { name: string; realm: string | null; guid: null };
 type Row = { character: Identity; observedTeamKey: string | null; killingBlows: number | null; honorableKills: number | null; deaths: number | null; damage: number | null; healing: number | null };
@@ -188,8 +189,11 @@ export function MatchHistory() {
       {!view.matches.length && !view.queue?.conflicts && view.queue?.status !== 'STORAGE_UNAVAILABLE' && <p>No completed matches yet.</p>}
       {matches.slice(0, limit).map(match => {
         const result = matchResult(match);
+        const state = deliveryState(match, view?.queue ?? null);
         return <details className={`history-match${result ? ` is-${result}` : ''}`} key={match.captureId}>
         <summary><span className="match-identity"><strong>{match.map.observedName}</strong><span className="match-meta"><span>{character(match.character)}<span className={`match-outcome${result ? ` is-${result}` : ''}`}>{result === 'victory' ? 'Victory' : result === 'defeat' ? 'Defeat' : `${team(match.winner)} won`}</span></span><time dateTime={match.endedAt} title={stamp(match.endedAt)}>{shortStamp(match.endedAt)}</time></span></span><DeliveryBadge match={match} queue={view?.queue ?? null} /></summary>
+        <TestMatchProgress step={3} uploaded={state === 'ACKNOWLEDGED'} />
+        <div className="test-next-step"><strong>{state === 'ACKNOWLEDGED' ? 'Results uploaded' : state === 'SENDING' ? 'Uploading saved results' : state ? deliveryLabels[state] : 'Final results saved on this PC'}</strong><p>{state === 'ACKNOWLEDGED' ? 'rbgs.io has received this saved version. Uploading does not verify the result.' : state && deliveryHelp[state] ? deliveryHelp[state] : 'Check Upload options to upload results for an assigned test.'}</p></div>
         <dl className="saved-data-summary">
           <div><dt>Observed character</dt><dd>{character(match.character)}</dd></div>
           <div><dt>Observed entry</dt><dd>{stamp(match.startedAt)}</dd></div>

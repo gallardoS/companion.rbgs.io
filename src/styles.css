@@ -246,3 +246,13 @@ svg { flex-shrink: 0; }
 
 .history-match.is-selected { border-color: var(--accent); outline: 1px solid #facc1544; }
 .history-match:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+
+.test-progress { display: flex; flex-wrap: wrap; gap: .65rem 1rem; list-style: none; padding: 0; margin: 1rem 0; }
+.test-progress li { display: flex; align-items: center; gap: .4rem; color: var(--muted); font-size: .75rem; }
+.test-progress-number { display: grid; place-items: center; width: 22px; height: 22px; flex-shrink: 0; border: 1px solid var(--line); border-radius: 50%; font-variant-numeric: tabular-nums; }
+.test-progress .is-current { color: var(--accent); }
+.test-progress .is-current .test-progress-number { border-color: var(--accent); background: #facc150a; }
+.test-progress .is-complete { color: var(--success); }
+.test-next-step { margin: .8rem 0; padding-left: .75rem; border-left: 2px solid var(--accent); }
+.test-next-step > strong { font-size: .875rem; font-weight: 600; }
+.test-next-step > p { margin: .3rem 0 0; font-size: .8125rem; }

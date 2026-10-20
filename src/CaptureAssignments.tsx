@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { invoke } from '@tauri-apps/api/core';
 import { Icon } from './Navigation';
+import { TestMatchProgress } from './TestMatchProgress';
 import { errorDetail, Feedback } from './Feedback';
 
 type Assignment = { captureId: string; assignmentId: string; character: { name: string; realm: string | null }; armUntil: string; codeIssued: boolean; cancelled: boolean; command: string | null };
@@ -140,6 +141,13 @@ export function CaptureAssignments({ accountId, enabled = true, activityVersion 
     {enabled && loadError !== null && <Feedback title="Cannot load test matches" detail={loadError} action={<button disabled={busy || loading} onClick={() => void load()}><Icon name="reload" />{loading ? 'Retrying…' : 'Retry tests'}</button>}>{rows.length ? 'Showing the last loaded tests. Retrying automatically.' : 'Retrying automatically. You can also try again now.'}</Feedback>}
     {enabled && loading && !loaded && <p role="status">Loading your test matches…</p>}
  {rows.map(row=><article className={`history-match${focusCaptureId === row.captureId ? ' is-selected' : ''}`} id={`assignment-${row.captureId}`} tabIndex={-1} key={row.captureId}><h3>{row.character.name} · Darkspear</h3><p>Arm before {new Date(row.armUntil).toLocaleString()}</p>
+ { !row.cancelled && Date.parse(row.armUntil) > Date.now() && <>
+   <TestMatchProgress step={row.codeIssued || row.command ? 2 : 1} />
+   <div className="test-next-step"><strong>{row.command ? 'Waiting for saved results' : row.codeIssued ? 'Check your command in WoW' : 'Get your match command'}</strong>
+     <p>{row.command ? 'Paste the command in WoW chat before entering the battleground. The companion receives results when you save them at the end; it cannot confirm when the command is used.' : row.codeIssued ? 'If you already used the command, save your results when the battleground ends.' : 'Then paste it in WoW chat before entering the battleground.'}</p>
+   </div>
+ </>}
+
  <button disabled={busy||row.cancelled||Date.parse(row.armUntil)<=Date.now()||(row.codeIssued&&!row.command)} onClick={()=>void issue(row)}>{issuingId === row.captureId ? 'Getting command…' : row.command ? 'Show saved command' : 'Get match command'}</button>
         {issueError?.captureId === row.captureId && !row.command && !(row.codeIssued && !row.command) && <Feedback title="Cannot get your command" detail={issueError.detail}>Try Get match command again. If a command was already issued, check the rbgs.io addon in WoW before requesting a new test.</Feedback>}
  {row.command&&!row.cancelled&&<><label htmlFor={`command-${row.captureId}`}>Match command to paste in WoW chat</label><div className="command-field">
@@ -148,5 +156,6 @@ export function CaptureAssignments({ accountId, enabled = true, activityVersion 
           <span className="visually-hidden" role="status">{copied === row.captureId ? 'Command copied.' : ''}</span>
  </div>{copyFallback === row.captureId && <p className="status-message" role="status">Press Ctrl+C to copy the selected command.</p>}</>}
  {row.codeIssued&&!row.command&&<p>The code was already issued elsewhere or its response was lost. Recover from the addon if armed; otherwise request a fresh assignment.</p>}
+        <p className="saved-data-note">At the final scoreboard, click <strong>rbgs.io: Save results</strong> or use <code>/reload</code>. The companion will then upload the saved results{autoSync ? ' automatically' : ' when you resume uploads'}.</p>
  </article>)}</section>;
 }

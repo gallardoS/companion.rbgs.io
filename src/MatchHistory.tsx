@@ -38,8 +38,27 @@ function valid(value: unknown): value is View {
         && [row.killingBlows, row.honorableKills, row.deaths, row.damage, row.healing].every(number)));
 }
 function stamp(value: string) { return new Date(value).toLocaleString(); }
+function shortStamp(value: string) {
+  const date = new Date(value);
+  const today = new Date();
+  const yesterday = new Date(today);
+  yesterday.setDate(today.getDate() - 1);
+  const day = date.toDateString() === today.toDateString() ? 'Today'
+    : date.toDateString() === yesterday.toDateString() ? 'Yesterday'
+    : date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', ...(date.getFullYear() !== today.getFullYear() ? { year: 'numeric' as const } : {}) });
+  return `${day} · ${date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+}
 function team(value: string | null) { return value === '0' ? 'Horde' : value === '1' ? 'Alliance' : 'Unknown'; }
 function character(value: Identity) { return `${value.name}${value.realm ? ` · ${value.realm}` : ''}`; }
+
+function matchResult(match: Match): 'victory' | 'defeat' | null {
+  const name = (value: string) => value.normalize('NFC').trim().toLowerCase();
+  const realm = (value: string) => name(value).replace(/\s+/g, '');
+  const ownRows = match.roster.filter(row => name(row.character.name) === name(match.character.name)
+    && (!row.character.realm || !match.character.realm || realm(row.character.realm) === realm(match.character.realm)));
+  if (ownRows.length !== 1 || ownRows[0].observedTeamKey === null) return null;
+  return ownRows[0].observedTeamKey === match.winner ? 'victory' : 'defeat';
+}
 
 const scoreboardColumns = [
   { key: 'character', label: 'Character', numeric: false },
@@ -84,8 +103,32 @@ function Scoreboard({ match }: { match: Match }) {
   </div></div>;
 }
 
+const deliveryLabels: Record<string, string> = {
+  WAITING_ASSIGNMENT: 'No match assigned', NEEDS_AUTH: 'Account check needed', CONFLICT: 'Data does not match',
+  PENDING: 'Waiting to upload', SENDING: 'Uploading', ACKNOWLEDGED: 'Uploaded', BLOCKED: 'Upload blocked',
+};
+
+function deliveryState(match: Match, queue: Queue | null) {
+  return queue?.items.find(item => item.captureId === match.captureId && item.revision === match.revision)?.state;
+}
+const deliveryHelp: Record<string, string> = {
+  WAITING_ASSIGNMENT: 'This recording has no matching test assignment. It stays saved on this PC.',
+  NEEDS_AUTH: 'Check your account connection and match permissions in Settings to continue uploading.',
+  CONFLICT: 'Different data was found for the same recording. It stays saved for inspection.',
+  BLOCKED: 'rbgs.io did not accept this upload. The recording stays saved on this PC.',
+  PENDING: 'Waiting for the next upload attempt. Keep the companion running with automatic uploads enabled.',
+  SENDING: 'Sending this saved version to rbgs.io.',
+};
+
+export function DeliveryBadge({ match, queue }: { match: Match; queue: Queue | null }) {
+  const state = deliveryState(match, queue);
+  const tone = state === 'ACKNOWLEDGED' ? 'success' : state && ['BLOCKED', 'CONFLICT', 'NEEDS_AUTH', 'WAITING_ASSIGNMENT'].includes(state) ? 'warning' : 'neutral';
+  return <span className={`state-label state-${tone}`} title={state ? deliveryHelp[state] : undefined}>{state ? deliveryLabels[state] : 'Saved on this PC'}</span>;
+}
+
 export function MatchHistory() {
   const id = useId();
+  const [limit, setLimit] = useState(5);
   const [view, setView] = useState<View | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -114,6 +157,7 @@ export function MatchHistory() {
     void read();
     return () => { disposed = true; clearTimeout(timer); refresh.current = () => {}; };
   }, []);
+  const matches = [...(view?.matches ?? [])].sort((a, b) => Date.parse(b.endedAt) - Date.parse(a.endedAt) || a.captureId.localeCompare(b.captureId));
   return <section className="match-history" aria-labelledby={`${id}-heading`}>
     <div className="section-toolbar"><div><h2 id={`${id}-heading`}>Completed matches</h2>
     <p>Local observations. Matches remain unverified.</p></div>
@@ -133,15 +177,20 @@ export function MatchHistory() {
     {error ? <p role="alert">{error}</p> : view?.status !== 'READY' ? <p role="status">{view?.message ?? 'Reading match history…'}</p> : <>
       <p>{view.matches.length} completed locally · {view.retainedAttempts} / 8 attempts in the current game file</p>
       {!view.matches.length && !view.queue?.conflicts && view.queue?.status !== 'STORAGE_UNAVAILABLE' && <p>No completed matches yet.</p>}
-      {view.matches.map(match => <details className="history-match" key={match.captureId}>
-        <summary><strong>{match.map.observedName}</strong><span>{team(match.winner)} won · {match.roster.length} players</span><time dateTime={match.endedAt}>{stamp(match.endedAt)}</time></summary>
+      {matches.slice(0, limit).map(match => {
+        const result = matchResult(match);
+        return <details className={`history-match${result ? ` is-${result}` : ''}`} key={match.captureId}>
+        <summary><span className="match-identity"><strong>{match.map.observedName}</strong><span className="match-meta"><span>{character(match.character)}<span className={`match-outcome${result ? ` is-${result}` : ''}`}>{result === 'victory' ? 'Victory' : result === 'defeat' ? 'Defeat' : `${team(match.winner)} won`}</span></span><time dateTime={match.endedAt} title={stamp(match.endedAt)}>{shortStamp(match.endedAt)}</time></span></span><DeliveryBadge match={match} queue={view?.queue ?? null} /></summary>
         <dl className="saved-data-summary">
           <div><dt>Observed character</dt><dd>{character(match.character)}</dd></div>
           <div><dt>Observed entry</dt><dd>{stamp(match.startedAt)}</dd></div>
           <div><dt>Capture ID / revision / build</dt><dd>{match.captureId} / {match.revision} / {match.build}</dd></div>
         </dl>
         <Scoreboard match={match} />
-      </details>)}
+      </details>;
+      })}
+    {matches.length > limit && <button className="button-link history-pagination" onClick={() => setLimit(current => current + 5)}>Show older ({matches.length - limit})</button>}
+    {limit > 5 && <button className="button-link history-pagination" onClick={() => setLimit(5)}>Show fewer</button>}
     </>}
   </section>;
 }

@@ -61,6 +61,38 @@ pub struct Connection {
     pub(crate) credential_fingerprint: String,
 }
 
+#[derive(Debug, Serialize)]
+pub struct ConnectionStatusError {
+    kind: ConnectionErrorKind,
+    message: String,
+}
+
+#[derive(Debug, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
+enum ConnectionErrorKind {
+    NotPaired,
+    AuthRequired,
+    Unavailable,
+    StorageUnavailable,
+}
+
+impl From<String> for ConnectionStatusError {
+    fn from(message: String) -> Self {
+        let kind = match message.as_str() {
+            "No paired device. Generate a pairing code." => ConnectionErrorKind::NotPaired,
+            "Device access expired, was revoked, or the account is unavailable. Pair again." => {
+                ConnectionErrorKind::AuthRequired
+            }
+            "Windows credential storage is unavailable"
+            | "Windows credential storage could not be read" => {
+                ConnectionErrorKind::StorageUnavailable
+            }
+            _ => ConnectionErrorKind::Unavailable,
+        };
+        Self { kind, message }
+    }
+}
+
 fn configured_origin(debug: bool, value: Option<&str>) -> String {
     if debug {
         value.unwrap_or("https://api.rbgs.io").into()
@@ -293,7 +325,7 @@ pub(crate) async fn send_heartbeat() -> Result<(), String> {
 }
 
 #[tauri::command]
-pub async fn connection_status(app: tauri::AppHandle) -> Result<Connection, String> {
+pub async fn connection_status(app: tauri::AppHandle) -> Result<Connection, ConnectionStatusError> {
     let mut result = verify_connection().await?;
     let path = crate::saved_variables::inbox::path(&app)?;
     let fingerprint = result.credential_fingerprint.clone();
@@ -365,6 +397,40 @@ mod tests {
         assert!(ui.get("credentialFingerprint").is_none());
     }
 
+    #[test]
+    fn connection_errors_distinguish_repairing_from_retrying_without_exposing_credentials() {
+        for (message, expected) in [
+            ("No paired device. Generate a pairing code.", "NOT_PAIRED"),
+            (
+                "Device access expired, was revoked, or the account is unavailable. Pair again.",
+                "AUTH_REQUIRED",
+            ),
+            (
+                "Windows credential storage is unavailable",
+                "STORAGE_UNAVAILABLE",
+            ),
+            (
+                "Windows credential storage could not be read",
+                "STORAGE_UNAVAILABLE",
+            ),
+            (
+                "Connection unavailable. Your credential remains stored.",
+                "UNAVAILABLE",
+            ),
+            (
+                "The server could not confirm this operation. Try again later.",
+                "UNAVAILABLE",
+            ),
+            ("Invalid connection response", "UNAVAILABLE"),
+            ("Local account context could not be saved", "UNAVAILABLE"),
+        ] {
+            let error = ConnectionStatusError::from(message.to_owned());
+            let value = serde_json::to_value(error).unwrap();
+            assert_eq!(value["kind"], expected);
+            assert_eq!(value["message"], message);
+            assert_eq!(value.as_object().unwrap().len(), 2);
+        }
+    }
     #[test]
     fn environment_defaults_release_policy_and_destination_allowlist() {
         assert_eq!(configured_origin(true, None), "https://api.rbgs.io");

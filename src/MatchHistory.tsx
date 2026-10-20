@@ -1,5 +1,7 @@
 import { useEffect, useId, useRef, useState } from 'react';
 import { invoke } from '@tauri-apps/api/core';
+import { Icon } from './Navigation';
+import { useHiddenTests, type ClosedTest } from './testHistory';
 import { errorDetail, Feedback } from './Feedback';
 import { TestMatchProgress } from './TestMatchProgress';
 
@@ -162,15 +164,29 @@ export function DeliveryBadge({ match, queue }: { match: Match; queue: Queue | n
   return <span className={`state-label state-${tone}`} title={state ? deliveryHelp[state] : undefined}>{state ? deliveryLabels[state] : 'Saved on this PC'}</span>;
 }
 
-export function MatchHistory() {
+export function MatchHistory({ tests, accountId, sourceSelected }: { tests: ClosedTest[]; accountId: string; sourceSelected: boolean }) {
   const id = useId();
   const [limit, setLimit] = useState(5);
-  const { view, error, busy, refresh } = useMatchHistory('selected-source');
+  const { view, error, busy, refresh } = useMatchHistory(sourceSelected ? 'selected-source' : null);
+  const hiddenTests = useHiddenTests(accountId);
+  const closedTestsRef = useRef<HTMLDetailsElement>(null);
+  const undoRef = useRef<HTMLButtonElement>(null);
+  const previousHidden = useRef<string | null>(null);
+  useEffect(() => {
+    if (hiddenTests.lastHidden) undoRef.current?.focus();
+    else if (previousHidden.current) closedTestsRef.current?.querySelector('summary')?.focus();
+    previousHidden.current = hiddenTests.lastHidden;
+  }, [hiddenTests.lastHidden]);
+  const recordedIds = new Set(view?.matches.map(match => match.captureId));
+  const unrecordedTests = tests.filter(test => !recordedIds.has(test.captureId));
+  const hiddenCount = unrecordedTests.filter(test => hiddenTests.hidden.has(test.captureId)).length;
   const matches = [...(view?.matches ?? [])].sort((a, b) => Date.parse(b.endedAt) - Date.parse(a.endedAt) || a.captureId.localeCompare(b.captureId));
+  const closedTests = unrecordedTests.filter(test => !hiddenTests.hidden.has(test.captureId))
+    .sort((a, b) => Date.parse(b.armUntil) - Date.parse(a.armUntil) || a.captureId.localeCompare(b.captureId));
   return <section className="match-history" aria-labelledby={`${id}-heading`}>
     <div className="section-toolbar"><div><h2 id={`${id}-heading`}>Completed matches</h2>
     <p>Local observations. Matches remain unverified.</p></div>
-    <button disabled={busy} onClick={refresh}>Refresh match history</button></div>
+    <button disabled={busy || !sourceSelected} onClick={refresh}>Refresh match history</button></div>
       {view?.queue && <div className="local-inbox">
         <h3>Local capture queue</h3>
         <p role={view.queue.status === 'READY' ? 'status' : 'alert'}>{view.queue.message}</p>
@@ -183,8 +199,9 @@ export function MatchHistory() {
           <span className="local-path">{item.captureId}</span> · revision {item.revision} · {item.coverage.toLowerCase()} · {({WAITING_ASSIGNMENT:'Waiting for assignment',NEEDS_AUTH:'Waiting for account confirmation',CONFLICT:'Conflict',PENDING:'Pending delivery',SENDING:'Sending',ACKNOWLEDGED:'Received by server',BLOCKED:'Blocked'})[item.state as 'WAITING_ASSIGNMENT']}
         </li>)}</ul></details>}
       </div>}
+    {hiddenTests.error && <p className="status-message" role="alert">Could not save your hidden tests on this PC. Try again.</p>}
     {error && <Feedback title="Cannot refresh your matches" detail={error}>{view ? 'Showing the last loaded matches. Retrying automatically.' : 'Your matches could not be loaded. Retrying automatically.'}</Feedback>}
-    {view?.status !== 'READY' ? <p role="status">{view?.message ?? 'Reading match history…'}</p> : <>
+    {!sourceSelected ? null : view?.status !== 'READY' ? <p role="status">{view?.message ?? 'Reading match history…'}</p> : <>
       <p>{view.matches.length} completed locally · {view.retainedAttempts} / 8 attempts in the current game file</p>
       {!view.matches.length && !view.queue?.conflicts && view.queue?.status !== 'STORAGE_UNAVAILABLE' && <p>No completed matches yet.</p>}
       {matches.slice(0, limit).map(match => {
@@ -205,5 +222,14 @@ export function MatchHistory() {
     {matches.length > limit && <button className="button-link history-pagination" onClick={() => setLimit(current => current + 5)}>Show older ({matches.length - limit})</button>}
     {limit > 5 && <button className="button-link history-pagination" onClick={() => setLimit(5)}>Show fewer</button>}
     </>}
+    {hiddenTests.lastHidden && <div className="history-undo"><span role="status">Test hidden on this PC.</span><button ref={undoRef} className="button-link" onClick={hiddenTests.undo}>Undo hide</button></div>}
+    {(closedTests.length > 0 || hiddenCount > 0) && <details className="closed-tests" ref={closedTestsRef}><summary>Closed tests <span>({closedTests.length})</span></summary>
+      {closedTests.map(test => <article className="history-test" key={test.captureId}>
+        <div className="match-identity"><strong>{test.character.name}</strong><span className="match-meta"><span>{test.character.realm ? `${test.character.realm} · ` : ''}Darkspear</span><time dateTime={test.armUntil} title={`Command deadline: ${stamp(test.armUntil)}`}>{shortStamp(test.armUntil)}</time></span></div>
+        <span className="state-label state-neutral">{test.cancelled ? 'Cancelled' : 'Expired'}</span>
+        <button className="history-test-hide" title="Hide test on this PC" aria-label={`Hide ${test.cancelled ? 'cancelled' : 'expired'} test for ${test.character.name}`} onClick={() => hiddenTests.hide(test.captureId)}><Icon name="close" /></button>
+      </article>)}
+      {hiddenCount > 0 && <button className="button-link hidden-tests-action" onClick={hiddenTests.showAll}>Show hidden tests ({hiddenCount})</button>}
+    </details>}
   </section>;
 }

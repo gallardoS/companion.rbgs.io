@@ -1,6 +1,7 @@
 import { useEffect, useId, useRef, useState } from 'react';
 import { invoke } from '@tauri-apps/api/core';
 import { MatchHistory } from './MatchHistory';
+import type { ClosedTest } from './testHistory';
 import { Icon, type TabId } from './Navigation';
 
 type Summary = {
@@ -36,7 +37,7 @@ function time(value: number | null): string {
   return Number.isNaN(date.valueOf()) ? 'Unknown' : date.toLocaleString();
 }
 
-export function SavedVariables({ activeTab, onTabChange }: { activeTab: TabId; onTabChange: (tab: TabId) => void }) {
+export function SavedVariables({ activeTab, onTabChange, accountId, tests }: { activeTab: TabId; onTabChange: (tab: TabId) => void; accountId: string; tests: ClosedTest[] }) {
   const id = useId();
   const [view, setView] = useState<SourceView | null>(null);
   const [busy, setBusy] = useState(false);
@@ -146,7 +147,7 @@ export function SavedVariables({ activeTab, onTabChange }: { activeTab: TabId; o
     <p className="saved-data-note">File freshness and device connectivity do not establish current in-game participation, account ownership or a verified match.</p>
     </section>
     <section id="panel-history" role="tabpanel" aria-labelledby="tab-history" hidden={activeTab !== 'history'} tabIndex={0}>
-      {view?.selectedSource ? <MatchHistory key={`${view.installation}/${view.selectedSource}`} /> : <div className="empty-state"><span className="empty-icon"><Icon name="history" /></span><h2>Choose your game account</h2><p>Select your Forever installation and saved-data account to load completed captures on this PC.</p><button className="button-primary" onClick={() => onTabChange('game')}>Set up game data<Icon name="arrow" /></button></div>}
+      {view?.selectedSource || tests.length > 0 ? <MatchHistory key={`${view?.installation}/${view?.selectedSource}/${accountId}`} tests={tests} accountId={accountId} sourceSelected={!!view?.selectedSource} /> : <div className="empty-state"><span className="empty-icon"><Icon name="history" /></span><h2>Choose your game account</h2><p>Select your Forever installation and saved-data account to load completed captures on this PC.</p><button className="button-primary" onClick={() => onTabChange('game')}>Set up game data<Icon name="arrow" /></button></div>}
     </section>
   </>;
 }

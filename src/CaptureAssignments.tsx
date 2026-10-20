@@ -1,12 +1,22 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { invoke } from '@tauri-apps/api/core';
 import { Icon } from './Navigation';
+import type { ClosedTest } from './testHistory';
 import { TestMatchProgress } from './TestMatchProgress';
 import { errorDetail, Feedback } from './Feedback';
 
 type Assignment = { captureId: string; assignmentId: string; character: { name: string; realm: string | null }; armUntil: string; codeIssued: boolean; cancelled: boolean; command: string | null };
+export type AssignmentSummary = { captureIds: string[]; error: boolean; closedTests: ClosedTest[] };
 const commandPattern = /^\/rbgs match RB2:[0-9a-f-]{36}:[0-9A-HJKMNP-TV-Z]{16}$/i;
-export function CaptureAssignments({ accountId, enabled = true, activityVersion = 0, focusCaptureId = null }: { accountId: string; enabled?: boolean; activityVersion?: number; focusCaptureId?: string | null }) {
+function timeRemaining(deadline: string, now: number) {
+  const seconds = Math.max(0, Math.ceil((Date.parse(deadline) - now) / 1000));
+  if (seconds >= 86400) return `${Math.floor(seconds / 86400)}d ${Math.floor(seconds % 86400 / 3600)}h`;
+  if (seconds >= 3600) return `${Math.floor(seconds / 3600)}h ${Math.floor(seconds % 3600 / 60)} min`;
+  if (seconds >= 60) return `${Math.ceil(seconds / 60)} min`;
+  return `${seconds} sec`;
+}
+
+export function CaptureAssignments({ accountId, enabled = true, onSummary, activityVersion = 0, focusCaptureId = null }: { accountId: string; enabled?: boolean; onSummary?: (summary: AssignmentSummary) => void; activityVersion?: number; focusCaptureId?: string | null }) {
   const [rows, setRows] = useState<Assignment[]>([]);
   const [loading, setLoading] = useState(true);
   const [issuingId, setIssuingId] = useState<string | null>(null);
@@ -29,6 +39,7 @@ export function CaptureAssignments({ accountId, enabled = true, activityVersion 
   });
   const autoSync = uploadPreference.enabled;
   const [copied, setCopied] = useState<string | null>(null);
+  const [now, setNow] = useState(Date.now());
   const syncing = useRef(false);
   const issuingRef = useRef(false);
   const mounted = useRef(false);
@@ -37,6 +48,7 @@ export function CaptureAssignments({ accountId, enabled = true, activityVersion 
   const allowed = useRef(enabled);
   allowed.current = enabled;
   const busy = issuing || sending;
+  const visibleRows = rows.filter(row => !row.cancelled && Date.parse(row.armUntil) > now);
 
 
   function changeAutoSync(value: boolean) {
@@ -46,7 +58,10 @@ export function CaptureAssignments({ accountId, enabled = true, activityVersion 
 
   useEffect(() => {
     mounted.current = true;
-    return () => { mounted.current = false; ++loadEpoch.current; };
+    const updateNow = () => setNow(Date.now());
+    const timer = window.setInterval(updateNow, 1000);
+    window.addEventListener('focus', updateNow);
+    return () => { mounted.current = false; ++loadEpoch.current; window.clearInterval(timer); window.removeEventListener('focus', updateNow); };
   }, []);
 
   const load = useCallback(async () => {
@@ -96,6 +111,10 @@ export function CaptureAssignments({ accountId, enabled = true, activityVersion 
     return () => window.clearTimeout(timer);
   }, [copied]);
 
+  useEffect(() => {
+    if (loaded) onSummary?.({ captureIds: rows.filter(row => !row.cancelled && Date.parse(row.armUntil) > now).map(row => row.captureId), error: loadError !== null, closedTests: rows.filter(row => row.cancelled || Date.parse(row.armUntil) <= now).map(({ captureId, character, armUntil, cancelled }) => ({ captureId, character, armUntil, cancelled })) });
+  }, [rows, loaded, loadError, now, onSummary]);
+
   async function issue(row: Assignment) {
     if (!allowed.current || syncing.current || issuingRef.current) return;
     issuingRef.current = true; setIssuingId(row.captureId);
@@ -138,9 +157,9 @@ export function CaptureAssignments({ accountId, enabled = true, activityVersion 
     {!autoSync && <div className="uploads-paused" role="status"><span>Automatic uploads paused{sending ? ' · Current check may finish' : ''}</span><button onClick={() => changeAutoSync(true)}>Resume uploads</button></div>}
     {preferenceFeedback}
     {uploadFeedback}
-    {enabled && loadError !== null && <Feedback title="Cannot load test matches" detail={loadError} action={<button disabled={busy || loading} onClick={() => void load()}><Icon name="reload" />{loading ? 'Retrying…' : 'Retry tests'}</button>}>{rows.length ? 'Showing the last loaded tests. Retrying automatically.' : 'Retrying automatically. You can also try again now.'}</Feedback>}
+    {enabled && loadError !== null && <Feedback title="Cannot load test matches" detail={loadError} action={<button disabled={busy || loading} onClick={() => void load()}><Icon name="reload" />{loading ? 'Retrying…' : 'Retry tests'}</button>}>{visibleRows.length ? 'Showing the last loaded tests. Retrying automatically.' : 'Retrying automatically. You can also try again now.'}</Feedback>}
     {enabled && loading && !loaded && <p role="status">Loading your test matches…</p>}
- {rows.map(row=><article className={`history-match${focusCaptureId === row.captureId ? ' is-selected' : ''}`} id={`assignment-${row.captureId}`} tabIndex={-1} key={row.captureId}><h3>{row.character.name} · Darkspear</h3><p>Arm before {new Date(row.armUntil).toLocaleString()}</p>
+ {visibleRows.map(row=><article className={`history-match${focusCaptureId === row.captureId ? ' is-selected' : ''}`} id={`assignment-${row.captureId}`} tabIndex={-1} key={row.captureId}><h3>{row.character.name} · Darkspear</h3><details className="assignment-deadline"><summary><strong className={Date.parse(row.armUntil) - now < 60000 ? 'text-warning' : undefined}>Expires in {timeRemaining(row.armUntil, now)}</strong></summary><p>Use by <time dateTime={row.armUntil}>{new Date(row.armUntil).toLocaleString()}</time></p></details>
  { !row.cancelled && Date.parse(row.armUntil) > Date.now() && <>
    <TestMatchProgress step={row.codeIssued || row.command ? 2 : 1} />
    <div className="test-next-step"><strong>{row.command ? 'Waiting for saved results' : row.codeIssued ? 'Check your command in WoW' : 'Get your match command'}</strong>

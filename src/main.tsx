@@ -1,8 +1,8 @@
-import { StrictMode, useEffect, useRef, useState } from 'react';
+import { StrictMode, useCallback, useEffect, useRef, useState } from 'react';
 import { invoke } from '@tauri-apps/api/core';
 import { createRoot } from 'react-dom/client';
 import { SavedVariables } from './SavedVariables';
-import { CaptureAssignments } from './CaptureAssignments';
+import { CaptureAssignments, type AssignmentSummary } from './CaptureAssignments';
 import { useAssignmentActivity } from './useAssignmentActivity';
 import { ConnectionRetry } from './ConnectionRetry';
 import { connectionCopy, connectionFailure, type ConnectionState } from './connection';
@@ -18,6 +18,8 @@ function App() {
   const connected = connection === 'connected';
   const [capturePermissions, setCapturePermissions] = useState(false);
   const [accountId, setAccountId] = useState('');
+  const [assignmentSummary, setAssignmentSummary] = useState<(AssignmentSummary & { accountId: string }) | null>(null);
+  const onAssignmentSummary = useCallback((summary: AssignmentSummary) => setAssignmentSummary({ ...summary, accountId }), [accountId]);
   const [busy, setBusy] = useState(false);
   const [webConnecting, setWebConnecting] = useState(false);
   const webActive=useRef(false);
@@ -151,9 +153,9 @@ function App() {
             <p className="field-hint">{!connected ? 'Connect your account to approve capture access.' : capturePermissions ? 'Assignments and saved-capture uploads are available in the Captures tab.' : 'Approve assignment access and saved-capture uploads in web Settings.'}</p>
           </div></section>
         </section>
-        <SavedVariables activeTab={activeTab} onTabChange={changeTab} />
+        <SavedVariables activeTab={activeTab} onTabChange={changeTab} accountId={accountId} tests={assignmentSummary?.accountId === accountId ? assignmentSummary.closedTests : []} />
         <section id="panel-captures" role="tabpanel" aria-labelledby="tab-captures" hidden={activeTab !== 'captures'} tabIndex={0}>
-          {connected && capturePermissions && !pairing && !webConnecting ? <CaptureAssignments key={accountId} accountId={accountId} activityVersion={activity?.version ?? 0} focusCaptureId={focusCaptureId} /> : <div className="empty-state"><span className="empty-icon"><Icon name="captures" /></span><h2>{connected ? 'Enable capture access' : 'Connect to get started'}</h2><p>{connected ? 'Approve capture permissions to see your test assignments and sync saved captures.' : 'Connect your rbgs.io account to see your test assignments and sync saved captures.'}</p><button className="button-primary" onClick={() => changeTab('account')}>Go to account<Icon name="arrow" /></button></div>}
+          {connected && capturePermissions && !pairing && !webConnecting ? <CaptureAssignments key={accountId} accountId={accountId} onSummary={onAssignmentSummary} activityVersion={activity?.version ?? 0} focusCaptureId={focusCaptureId} /> : <div className="empty-state"><span className="empty-icon"><Icon name="captures" /></span><h2>{connected ? 'Enable capture access' : 'Connect to get started'}</h2><p>{connected ? 'Approve capture permissions to see your test assignments and sync saved captures.' : 'Connect your rbgs.io account to see your test assignments and sync saved captures.'}</p><button className="button-primary" onClick={() => changeTab('account')}>Go to account<Icon name="arrow" /></button></div>}
         </section>
       </div>
       <footer className="app-footer"><span>Windows companion</span><span className="footer-game">World of Warcraft: Forever</span><span className="brand">rbgs.io</span></footer>

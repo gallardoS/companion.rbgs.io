@@ -9,7 +9,7 @@ export const tabs = [
 
 export type TabId = typeof tabs[number]['id'];
 
-export function Icon({ name }: { name: TabId | 'arrow' | 'check' | 'reload' | 'copy' }) {
+export function Icon({ name }: { name: TabId | 'arrow' | 'check' | 'reload' | 'copy' | 'close' }) {
   const paths = {
     account: <><circle cx="12" cy="8" r="3.5" /><path d="M5 21v-2a7 7 0 0 1 14 0v2" /></>,
     game: <><rect x="3" y="4" width="18" height="12" rx="2" /><path d="M8 21h8m-4-5v5" /></>,
@@ -17,6 +17,7 @@ export function Icon({ name }: { name: TabId | 'arrow' | 'check' | 'reload' | 'c
     captures: <><path d="M12 16V3m-5 5 5-5 5 5M4 15v4a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-4" /></>,
     arrow: <path d="M5 12h14m-5-5 5 5-5 5" />,
     check: <path d="m5 12 4 4L19 6" />,
+    close: <path d="m6 6 12 12M18 6 6 18" />,
     copy: <><rect x="8" y="8" width="12" height="13" rx="2" /><path d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3" /></>,
     reload: <><path d="M19 5v4h-4M5 19v-4h4" /><path d="M5.2 9a7 7 0 0 1 11.75-2.05L19 9M5 15l2.05 2.05A7 7 0 0 0 18.8 15" /></>,
   };

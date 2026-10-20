@@ -3,6 +3,7 @@ import { invoke } from '@tauri-apps/api/core';
 import { createRoot } from 'react-dom/client';
 import { SavedVariables } from './SavedVariables';
 import { CaptureAssignments } from './CaptureAssignments';
+import { useAssignmentActivity } from './useAssignmentActivity';
 import { ConnectionRetry } from './ConnectionRetry';
 import { connectionCopy, connectionFailure, type ConnectionState } from './connection';
 import { Icon, Navigation, tabs, type TabId } from './Navigation';
@@ -21,6 +22,9 @@ function App() {
   const [webConnecting, setWebConnecting] = useState(false);
   const webActive=useRef(false);
   const working=busy||webConnecting;
+  const activity = useAssignmentActivity(accountId, connected && capturePermissions && !pairing && !webConnecting);
+  const [focusCaptureId, setFocusCaptureId] = useState<string | null>(null);
+  const lastOpen = useRef('');
   const [message, setMessage] = useState('Checking saved connection…');
   const [connectionError, setConnectionError] = useState<string | null>(null);
   const [storageWarning, setStorageWarning] = useState<string | null>(null);
@@ -103,6 +107,15 @@ function App() {
     content.current?.scrollTo(0, 0);
     document.getElementById(`tab-${tab}`)?.focus();
   }
+  useEffect(() => { setFocusCaptureId(null); lastOpen.current = ''; }, [accountId]);
+  useEffect(() => {
+    const signature = `${accountId}/${activity?.openSequence ?? 0}`;
+    if (activity?.openCaptureId && signature !== lastOpen.current) {
+      lastOpen.current = signature;
+      setFocusCaptureId(activity.openCaptureId);
+      changeTab('captures');
+    }
+  }, [accountId, activity?.openCaptureId, activity?.openSequence]);
   const selected = tabs.find(tab => tab.id === activeTab)!;
   const connectionLabel = webConnecting ? 'Connecting…' : pairing ? 'Awaiting approval' : connectionCopy[connection].label;
   return <div className="app-shell">
@@ -140,7 +153,7 @@ function App() {
         </section>
         <SavedVariables activeTab={activeTab} onTabChange={changeTab} />
         <section id="panel-captures" role="tabpanel" aria-labelledby="tab-captures" hidden={activeTab !== 'captures'} tabIndex={0}>
-          {connected && capturePermissions && !pairing && !webConnecting ? <CaptureAssignments key={accountId} accountId={accountId} /> : <div className="empty-state"><span className="empty-icon"><Icon name="captures" /></span><h2>{connected ? 'Enable capture access' : 'Connect to get started'}</h2><p>{connected ? 'Approve capture permissions to see your test assignments and sync saved captures.' : 'Connect your rbgs.io account to see your test assignments and sync saved captures.'}</p><button className="button-primary" onClick={() => changeTab('account')}>Go to account<Icon name="arrow" /></button></div>}
+          {connected && capturePermissions && !pairing && !webConnecting ? <CaptureAssignments key={accountId} accountId={accountId} activityVersion={activity?.version ?? 0} focusCaptureId={focusCaptureId} /> : <div className="empty-state"><span className="empty-icon"><Icon name="captures" /></span><h2>{connected ? 'Enable capture access' : 'Connect to get started'}</h2><p>{connected ? 'Approve capture permissions to see your test assignments and sync saved captures.' : 'Connect your rbgs.io account to see your test assignments and sync saved captures.'}</p><button className="button-primary" onClick={() => changeTab('account')}>Go to account<Icon name="arrow" /></button></div>}
         </section>
       </div>
       <footer className="app-footer"><span>Windows companion</span><span className="footer-game">World of Warcraft: Forever</span><span className="brand">rbgs.io</span></footer>

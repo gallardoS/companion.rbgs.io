@@ -2,7 +2,7 @@ import {useEffect,useRef,useState} from 'react';
 import {invoke} from '@tauri-apps/api/core';
 import { Icon } from './Navigation';
 type Assignment={captureId:string;assignmentId:string;character:{name:string;realm:string|null};armUntil:string;codeIssued:boolean;cancelled:boolean;command:string|null};
-export function CaptureAssignments({ accountId }: { accountId: string }){
+export function CaptureAssignments({ accountId, activityVersion = 0, focusCaptureId = null }: { accountId: string; activityVersion?: number; focusCaptureId?: string | null }){
  const [rows,setRows]=useState<Assignment[]>([]);const [busy,setBusy]=useState(false);const [message,setMessage]=useState('Loading controlled assignments…');
  const syncing=useRef(false);const mounted=useRef(true);
   const preferenceKey = `rbgs.auto-uploads.v1.${accountId}`;
@@ -18,18 +18,28 @@ export function CaptureAssignments({ accountId }: { accountId: string }){
 
  const [copied,setCopied]=useState<string|null>(null);
  const [copyFallback,setCopyFallback]=useState<string|null>(null);
+  const lastFocused = useRef<string | null>(null);
   function changeAutoSync(value: boolean) {
     try { localStorage.setItem(preferenceKey, value ? 'on' : 'paused'); setUploadPreference({ enabled: value, error: null }); }
     catch { setUploadPreference({ enabled: value, error: 'write' }); }
   }
  async function load(){try{const result=await invoke<Assignment[]>('list_capture_assignments');if(!Array.isArray(result)||result.length>50||!result.every(r=>r&&typeof r.captureId==='string'&&/^[0-9a-f-]{36}$/i.test(r.captureId)&&r.character&&typeof r.character.name==='string'&&typeof r.codeIssued==='boolean'&&typeof r.cancelled==='boolean'&&Number.isFinite(Date.parse(r.armUntil))))throw Error('Invalid assignment list');setRows(result);setMessage(result.length?'Controlled tests. Captures go to review; no rating is applied.':'No controlled assignments are available for this account.');}catch(e){setRows([]);setMessage(String(e));}}
- useEffect(()=>{mounted.current=true;void load();return()=>{mounted.current=false;};},[]);
+ useEffect(()=>{mounted.current=true;void load();return()=>{mounted.current=false;};},[activityVersion]);
  useEffect(()=>{if(!autoSync)return;const timer=window.setInterval(()=>void sync(),15000);return()=>window.clearInterval(timer);},[autoSync]);
   useEffect(() => {
     if (!copied) return;
     const timer = window.setTimeout(() => setCopied(null), 2500);
     return () => window.clearTimeout(timer);
   }, [copied]);
+  useEffect(() => {
+    if (!focusCaptureId) { lastFocused.current = null; return; }
+    if (lastFocused.current === focusCaptureId || !rows.some(row => row.captureId === focusCaptureId)) return;
+    const card = document.getElementById(`assignment-${focusCaptureId}`);
+    if (!card) return;
+    card.focus({ preventScroll: true });
+    card.scrollIntoView({ block: 'nearest' });
+    lastFocused.current = focusCaptureId;
+  }, [focusCaptureId, rows]);
   async function copy(row: Assignment) {
     if (!mounted.current || !row.command || Date.parse(row.armUntil) <= Date.now()) return;
     try { await navigator.clipboard.writeText(row.command); setCopied(row.captureId); setCopyFallback(null); }
@@ -42,7 +52,7 @@ export function CaptureAssignments({ accountId }: { accountId: string }){
  <label className="capture-auto-sync"><span><strong>Automatic uploads</strong><span>Upload saved data for your assigned matches. This preference is remembered on this PC.</span></span><input type="checkbox" checked={autoSync} onChange={e=>changeAutoSync(e.target.checked)} aria-label="Automatically upload data for assigned matches" /></label><p className="status-message" role="status">{message}</p>
     {!autoSync && <div className="uploads-paused" role="status"><span>Automatic uploads paused</span><button onClick={() => changeAutoSync(true)}>Resume uploads</button></div>}
     {preferenceFeedback}
- {rows.map(row=><article className="history-match" key={row.captureId}><h3>{row.character.name} · Darkspear</h3><p>Arm before {new Date(row.armUntil).toLocaleString()}</p>
+ {rows.map(row=><article className={`history-match${focusCaptureId === row.captureId ? ' is-selected' : ''}`} id={`assignment-${row.captureId}`} tabIndex={-1} key={row.captureId}><h3>{row.character.name} · Darkspear</h3><p>Arm before {new Date(row.armUntil).toLocaleString()}</p>
  <button disabled={busy||row.cancelled||Date.parse(row.armUntil)<=Date.now()||(row.codeIssued&&!row.command)} onClick={()=>void issue(row)}>{row.command?'Show saved command':'Issue my one-time code'}</button>
  {row.command&&!row.cancelled&&<><label htmlFor={`command-${row.captureId}`}>Match command to paste in WoW chat</label><div className="command-field">
           <input id={`command-${row.captureId}`} readOnly value="/rbgs match ••••••••••••••••••••" onFocus={event => event.target.select()} onCopy={event => { event.preventDefault(); if (!mounted.current || Date.parse(row.armUntil) <= Date.now()) return; event.clipboardData.setData('text/plain', row.command!); setCopied(row.captureId); setCopyFallback(null); }} />

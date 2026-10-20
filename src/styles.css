@@ -243,3 +243,6 @@ svg { flex-shrink: 0; }
 .feedback details { margin-top: .4rem; }
 .feedback summary { color: var(--muted); font-size: .75rem; }
 .feedback details[open] > summary { margin-bottom: .25rem; }
+
+.history-match.is-selected { border-color: var(--accent); outline: 1px solid #facc1544; }
+.history-match:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }

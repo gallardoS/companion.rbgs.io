@@ -222,3 +222,13 @@ svg { flex-shrink: 0; }
 .match-outcome { display: inline-block; color: #c3cdc0; font-weight: 500; }
 .match-outcome.is-victory { color: var(--success); }
 .match-outcome.is-defeat { color: #e9a194; }
+
+.command-field { display: flex; align-items: center; gap: .5rem; }
+.command-field input { flex: 1; min-width: 0; font-family: ui-monospace, monospace; font-size: .8125rem; }
+.command-field button { flex-shrink: 0; }
+.command-field .command-copy { min-width: 140px; padding: .65rem .85rem; }
+@media (max-width: 520px) {
+  .command-field { flex-wrap: wrap; }
+  .command-field input { flex-basis: 100%; }
+  .command-field .command-copy { width: 100%; }
+}

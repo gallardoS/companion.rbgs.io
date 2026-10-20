@@ -41,6 +41,49 @@ function stamp(value: string) { return new Date(value).toLocaleString(); }
 function team(value: string | null) { return value === '0' ? 'Horde' : value === '1' ? 'Alliance' : 'Unknown'; }
 function character(value: Identity) { return `${value.name}${value.realm ? ` · ${value.realm}` : ''}`; }
 
+const scoreboardColumns = [
+  { key: 'character', label: 'Character', numeric: false },
+  { key: 'team', label: 'Team', numeric: false },
+  { key: 'killingBlows', label: 'KB', description: 'Killing blows', numeric: true },
+  { key: 'honorableKills', label: 'HK', description: 'Honorable kills', numeric: true },
+  { key: 'deaths', label: 'Deaths', numeric: true },
+  { key: 'damage', label: 'Damage', numeric: true },
+  { key: 'healing', label: 'Healing', numeric: true },
+] as const;
+type ScoreboardColumn = typeof scoreboardColumns[number]['key'];
+const scoreboardNames = new Intl.Collator('en', { sensitivity: 'base', numeric: true });
+
+function Scoreboard({ match }: { match: Match }) {
+  const captionId = useId();
+  const [sort, setSort] = useState<{ key: ScoreboardColumn; descending: boolean } | null>(null);
+  const rows = match.roster.map((row, index) => ({ row, index }));
+  if (sort) {
+    const value = (row: Row) => sort.key === 'character' ? character(row.character)
+      : sort.key === 'team' ? row.observedTeamKey === null ? null : team(row.observedTeamKey) : row[sort.key];
+    rows.sort((a, b) => {
+      const left = value(a.row), right = value(b.row);
+      if (left === null || right === null) return left === right ? a.index - b.index : left === null ? 1 : -1;
+      const order = typeof left === 'number' && typeof right === 'number' ? left - right : scoreboardNames.compare(String(left), String(right));
+      return (sort.descending ? -order : order) || a.index - b.index;
+    });
+  }
+  const activeColumn = scoreboardColumns.find(column => column.key === sort?.key);
+  return <div className="scoreboard"><p className="scoreboard-caption" id={captionId}>Saved final scoreboard</p><div className="scoreboard-scroll" role="region" aria-label={`Scoreboard for ${match.map.observedName}`} tabIndex={0}>
+    <p className="visually-hidden" role="status">{sort && activeColumn ? `Sorted by ${activeColumn.label}, ${sort.descending ? 'descending' : 'ascending'}.` : ''}</p>
+    <table aria-labelledby={captionId}><thead><tr>{scoreboardColumns.map(column => {
+      const active = sort?.key === column.key;
+      const descending = active ? !sort.descending : column.numeric;
+      const description = 'description' in column ? column.description : column.label;
+      return <th scope="col" key={column.key} aria-sort={active ? sort.descending ? 'descending' : 'ascending' : undefined}>
+        <button className="scoreboard-sort" aria-label={`Sort by ${description}`} title={`Sort by ${description}, ${column.numeric ? descending ? 'highest first' : 'lowest first' : descending ? 'Z to A' : 'A to Z'}`} onClick={() => setSort({ key: column.key, descending })}>{column.label}<span aria-hidden="true">{active ? sort.descending ? '↓' : '↑' : '↕'}</span></button>
+      </th>;
+    })}</tr></thead>
+      <tbody>{rows.map(({ row, index }) => <tr key={index}><th scope="row"><span className="scoreboard-name">{row.character.name}</span>{row.character.realm && <span className="scoreboard-realm">{row.character.realm}</span>}</th><td className={row.observedTeamKey === '0' ? 'team-horde' : row.observedTeamKey === '1' ? 'team-alliance' : undefined}>{team(row.observedTeamKey)}</td>
+        {[row.killingBlows, row.honorableKills, row.deaths, row.damage, row.healing].map((value, column) => <td key={column}>{value === null ? 'Unknown' : value.toLocaleString()}</td>)}
+      </tr>)}</tbody></table>
+  </div></div>;
+}
+
 export function MatchHistory() {
   const id = useId();
   const [view, setView] = useState<View | null>(null);
@@ -97,12 +140,7 @@ export function MatchHistory() {
           <div><dt>Observed entry</dt><dd>{stamp(match.startedAt)}</dd></div>
           <div><dt>Capture ID / revision / build</dt><dd>{match.captureId} / {match.revision} / {match.build}</dd></div>
         </dl>
-        <div className="scoreboard-scroll" role="region" aria-label={`Scoreboard for ${match.map.observedName}`} tabIndex={0}>
-          <table><caption>Final observed scoreboard</caption><thead><tr><th scope="col">Character</th><th scope="col">Team</th><th scope="col">KB</th><th scope="col">HK</th><th scope="col">Deaths</th><th scope="col">Damage</th><th scope="col">Healing</th></tr></thead>
-            <tbody>{match.roster.map((row, index) => <tr key={index}><th scope="row">{character(row.character)}</th><td>{team(row.observedTeamKey)}</td>
-              {[row.killingBlows, row.honorableKills, row.deaths, row.damage, row.healing].map((value, column) => <td key={column}>{value === null ? 'Unknown' : value.toLocaleString()}</td>)}
-            </tr>)}</tbody></table>
-        </div>
+        <Scoreboard match={match} />
       </details>)}
     </>}
   </section>;

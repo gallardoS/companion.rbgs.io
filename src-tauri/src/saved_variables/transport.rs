@@ -33,7 +33,9 @@ impl Session {
         let token = crate::pairing::stored_token()?;
         let connection = crate::pairing::verify_token(&token).await?;
         if !connection.capture_permissions {
-            return Err("Pair this device again using Enable capture permissions, then approve those permissions in web Settings.".into());
+            return Err(
+                "Open Settings, choose Allow match uploads and confirm in your browser.".into(),
+            );
         }
         Ok(Self {
             client: crate::pairing::client()?,
@@ -99,12 +101,14 @@ impl Session {
     }
 }
 fn local<T>(result: std::result::Result<T, &'static str>) -> Result<T, String> {
-    result.map_err(|_| "Local capture storage is unavailable; saved data was preserved.".into())
+    result.map_err(|_| {
+        "Cannot open match storage on this PC. Your saved data has not been changed.".into()
+    })
 }
 fn http_message(f: &Failure) -> String {
-    match f.status {401|403=>"Device authorization failed. Pair again with capture permissions.",409=>"The code was already issued or the capture revision conflicts. Existing data was preserved.",
-        410=>"This assignment is no longer available for arming.",404=>"No own server assignment exists for this capture. An old game cannot be relabeled.",
-        503=>"Controlled capture testing is disabled or the server is unavailable.",429=>"The server requested a delay before retrying.",_=>"Capture connection unavailable or response unsupported. Saved data was preserved."}.into()
+    match f.status {401|403=>"This PC cannot access match uploads. Reconnect your account and allow match uploads in Settings.",409=>"The match command was already created, or the uploaded data conflicts with an earlier saved version. Your saved data is kept.",
+        410=>"This test match is no longer available. Request a new one.",404=>"No assigned match was found for this saved data. Past games cannot be assigned to a new test.",
+        503=>"Test matches or the server are currently unavailable. Try again later.",429=>"Too many requests. Wait a moment before trying again.",_=>"Cannot contact rbgs.io or read its reply. Your saved match data is kept."}.into()
 }
 fn utc_stamp(value: &Value) -> bool {
     let Some(s) = value
@@ -185,7 +189,10 @@ fn descriptor(value: &Value, capture: &str) -> Result<(), String> {
             })
         });
     if !valid {
-        return Err("Invalid or unsupported assignment descriptor.".into());
+        return Err(
+            "Cannot read the assigned match details. Check that the companion is up to date."
+                .into(),
+        );
     }
     Ok(())
 }
@@ -205,7 +212,10 @@ fn body(snapshot: &Value, assignment: &Value) -> Result<Vec<u8>, String> {
             .as_str(),
         )
     {
-        return Err("Assignment code does not match this account's frozen descriptor.".into());
+        return Err(
+            "The command in the saved data does not match the assigned match for this account."
+                .into(),
+        );
     }
     let mut value = snapshot.clone();
     let object = value.as_object_mut().ok_or("Invalid snapshot")?;
@@ -295,9 +305,11 @@ fn save_issue(path: &Path, pending: &PendingIssue) -> Result<(), String> {
             params![crate::pairing::origin(), pending.account, pending.capture],
             |r| r.get(0),
         )
-        .map_err(|_| "Local code storage is full; issued code remains pending in memory.")?;
+        .map_err(
+            |_| "Command storage is full. Keep the companion open to retry saving the command.",
+        )?;
     if saved != pending.code {
-        return Err("Local code conflict; existing data was preserved".into());
+        return Err("This command conflicts with a saved command. Your saved data is kept.".into());
     }
     Ok(())
 }
@@ -327,7 +339,7 @@ pub(crate) async fn fetch_assignments(
             .filter(|v| history::uuid(v))
             .ok_or("Invalid assignment ID")?;
         let command:Option<String>=db.db.query_row("SELECT code FROM capture_issuances WHERE origin=? AND account_id=? AND capture_id=?",
-            params![crate::pairing::origin(),session.account,capture],|r|r.get(0)).optional().map_err(|_| "Local issuance unavailable")?;
+            params![crate::pairing::origin(),session.account,capture],|r|r.get(0)).optional().map_err(|_| "Cannot read your saved match commands")?;
         let mut view = row.clone();
         view["command"] = command
             .map(|code| Value::from(format!("/rbgs match RB2:{capture}:{code}")))
@@ -353,11 +365,11 @@ pub async fn issue_capture_assignment(
     let mut slot = state.issue.lock().await;
     if let Some(pending) = slot.as_ref() {
         if pending.account != session.account || pending.capture != capture_id {
-            return Err("Finish saving the pending code before issuing another assignment.".into());
+            return Err("Save the pending match command before getting another one.".into());
         }
     } else {
         let db = local(Inbox::open(&path))?;
-        let old:Option<String>=db.db.query_row("SELECT code FROM capture_issuances WHERE origin=? AND account_id=? AND capture_id=?",params![crate::pairing::origin(),session.account,capture_id],|r|r.get(0)).optional().map_err(|_| "Local issuance unavailable")?;
+        let old:Option<String>=db.db.query_row("SELECT code FROM capture_issuances WHERE origin=? AND account_id=? AND capture_id=?",params![crate::pairing::origin(),session.account,capture_id],|r|r.get(0)).optional().map_err(|_| "Cannot read your saved match commands")?;
         if let Some(code) = old {
             return Ok(format!("/rbgs match RB2:{capture_id}:{code}"));
         }
@@ -365,9 +377,9 @@ pub async fn issue_capture_assignment(
         let count: u32 = db
             .db
             .query_row("SELECT COUNT(*) FROM capture_issuances", [], |r| r.get(0))
-            .map_err(|_| "Local code storage unavailable")?;
+            .map_err(|_| "Cannot open your saved match commands")?;
         if count >= 100 {
-            return Err("Local code storage is full; no new code was requested.".into());
+            return Err("Match command storage is full. No new command was requested.".into());
         }
         let (issued, _) = session
             .request(
@@ -420,7 +432,7 @@ fn candidates(path: &Path, account: &str, source: &str) -> Result<Vec<Candidate>
     let scope = format!("{origin}|account:{account}");
     let unbound = format!("{origin}|unbound:{source}");
     let mut stmt=db.db.prepare("SELECT s.scope,s.capture_id,s.revision,s.digest,s.payload FROM snapshots s JOIN sources l ON s.scope=l.scope AND s.capture_id=l.capture_id AND s.revision=l.revision AND s.digest=l.digest
-        WHERE l.source=? AND s.scope IN (?,?) AND s.stage IN ('COMPLETE','INCOMPLETE') AND s.state<>'CONFLICT' ORDER BY s.saved_at LIMIT 100").map_err(|_| "Local captures unavailable")?;
+        WHERE l.source=? AND s.scope IN (?,?) AND s.stage IN ('COMPLETE','INCOMPLETE') AND s.state<>'CONFLICT' ORDER BY s.saved_at LIMIT 100").map_err(|_| "Cannot read your saved match data")?;
     let rows = stmt
         .query_map(params![source, scope, unbound], |r| {
             Ok((
@@ -431,12 +443,13 @@ fn candidates(path: &Path, account: &str, source: &str) -> Result<Vec<Candidate>
                 r.get::<_, Vec<u8>>(4)?,
             ))
         })
-        .map_err(|_| "Local captures unavailable")?;
+        .map_err(|_| "Cannot read your saved match data")?;
     let mut result = vec![];
     for row in rows {
-        let (scope, id, revision, hash, payload) = row.map_err(|_| "Local capture unavailable")?;
+        let (scope, id, revision, hash, payload) =
+            row.map_err(|_| "Cannot read this saved match")?;
         if payload.len() > 262144 || digest(&payload) != hash {
-            return Err("Stored snapshot integrity failed.".into());
+            return Err("The saved match data appears damaged. It has not been changed.".into());
         }
         let snapshot: Value =
             serde_json::from_slice(&payload).map_err(|_| "Stored snapshot invalid")?;
@@ -463,12 +476,14 @@ fn reserve(
     let (hash,state,next,assignment,payload,attempts,stored_sha):(String,String,u64,Option<String>,Option<Vec<u8>>,u32,Option<String>)=db.db.query_row("SELECT snapshot_digest,state,next_attempt_at,assignment_id,payload,attempts,content_sha256 FROM capture_transports WHERE origin=? AND account_id=? AND capture_id=? AND revision=?",
         params![origin,account,item.id,item.revision],|r|Ok((r.get(0)?,r.get(1)?,r.get(2)?,r.get(3)?,r.get(4)?,r.get(5)?,r.get(6)?))).map_err(|_| "Local request unavailable")?;
     if hash != item.snapshot_digest {
-        return Err("Local revision conflict; request bytes were preserved.".into());
+        return Err(
+            "This saved version conflicts with earlier match data. Your saved data is kept.".into(),
+        );
     }
     if payload.as_ref().is_some_and(|bytes| {
         bytes.len() > 262144 || stored_sha.as_deref() != Some(digest(bytes).as_str())
     }) {
-        return Err("Stored request integrity failed; nothing was sent.".into());
+        return Err("The saved upload data appears damaged. Nothing was sent.".into());
     }
     if ["ACKNOWLEDGED", "BLOCKED", "CONFLICT"].contains(&state.as_str())
         || next > seconds(SystemTime::now()).unwrap_or(0)
@@ -507,7 +522,7 @@ fn mark(
 ) -> Result<(), String> {
     let db = local(Inbox::open(path))?;
     db.db.execute("UPDATE capture_transports SET state=?,attempts=?,next_attempt_at=?,last_error=?,receipt=COALESCE(?,receipt) WHERE origin=? AND account_id=? AND capture_id=? AND revision=?",
-        params![state,attempts,next,error,receipt,crate::pairing::origin(),account,item.id,item.revision]).map_err(|_| "Local delivery state could not be saved. Retry with the same stored request.")?;
+        params![state,attempts,next,error,receipt,crate::pairing::origin(),account,item.id,item.revision]).map_err(|_| "Could not save upload progress on this PC. Try checking uploads again.")?;
     Ok(())
 }
 fn delay(attempts: u32, retry_after: u64) -> u64 {
@@ -535,7 +550,7 @@ pub async fn sync_captures(
     let _guard = state
         .sync
         .try_lock()
-        .map_err(|_| "A capture sync is already running")?;
+        .map_err(|_| "Uploads are already being checked")?;
     let session = Session::new().await?;
     let path = inbox::path(&app)?;
     let settings = settings_path(&app)?;
@@ -546,7 +561,7 @@ pub async fn sync_captures(
             .config
             .as_ref()
             .filter(|c| c.account.is_some())
-            .ok_or("Choose a game account first")?;
+            .ok_or("Choose your WoW account in Settings first")?;
         inbox::source_id(config)
     };
     inbox::confirm_account(&path, &digest(session.token.as_bytes()), &session.account)?;
@@ -559,7 +574,7 @@ async fn run_sync(path: &Path, session: &Session, source_id: &str) -> Result<Syn
         checked: 0,
         acknowledged: 0,
         waiting: 0,
-        message: "Captures remain saved locally. Server receipts mean stored, not verified or rated.",
+        message: "Match data is saved on this PC. Uploaded means rbgs.io saved the data; results still need to be verified.",
     };
     for item in rows {
         if view.checked >= 3 || std::time::Instant::now() >= deadline {

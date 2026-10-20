@@ -43,44 +43,40 @@ impl Status {
     fn message(self) -> &'static str {
         match self {
             Self::NotConfigured => {
-                "Choose your Forever beta client folder or its World of Warcraft parent folder."
+                "Choose your Forever beta folder or the World of Warcraft folder that contains it."
             }
             Self::WrongClient => {
-                "This is not the supported Forever beta installation. Choose the folder containing the beta client."
+                "We could not find Forever beta here. Choose the folder where it is installed."
             }
             Self::MissingAddon => {
-                "RBGSCompatibility is not installed. Install the diagnostic addon, enable it in-game, then reload or log out."
+                "Install RBGSCompatibility, enable it in WoW, then use /reload or log out."
             }
             Self::UnsupportedAddon => {
                 "We could not read the installed RBGSCompatibility addon. Reinstall the latest version, enable it in WoW, then use /reload or log out."
             }
             Self::NoSavedData => {
-                "No diagnostic SavedVariables source is available yet. Enable RBGSCompatibility, log into a character, then use /reload or log out and refresh."
+                "No game data saved yet. Enable RBGSCompatibility, log into a character, then use /reload or log out."
             }
-            Self::SelectSource => {
-                "Several account sources are available. Choose the account used by your Forever character."
-            }
+            Self::SelectSource => "Choose the WoW account you use to play Forever.",
             Self::SourceUnavailable => {
-                "The chosen source is unavailable or unsafe to read. Check the installation, refresh the sources, or choose another folder."
+                "We cannot read this account's saved data. Check your WoW folder and account, then try again."
             }
             Self::UnstableFile => {
-                "The file is being written or replaced. Wait for /reload or logout to finish, then refresh."
+                "WoW is saving your data. Wait for /reload or logout to finish, then try again."
             }
             Self::TooLarge => {
-                "This diagnostic file exceeds the 2 MB reading limit. Keep a private backup and review addon retention before retrying; no data was changed."
+                "The addon file is too large to read (over 2 MB). Back it up before getting help. Your saved data has not been changed."
             }
             Self::InvalidData => {
-                "The saved file is incomplete, malformed or outside the bounded data-only Lua format. Finish /reload or logout and refresh; no Lua was executed."
+                "We could not read the saved addon file. Wait for /reload or logout to finish, then try again. Your saved data has not been changed."
             }
             Self::UnsupportedSchema => {
-                "This SavedVariables schema is unsupported. Check the addon/companion versions."
+                "This data format is not supported. Update the addons and companion, then use /reload or log out in WoW."
             }
             Self::UnknownClient => {
                 "The saved data is missing valid game version details. Enable RBGSCompatibility, then use /reload or log out."
             }
-            Self::Ready => {
-                "Saved diagnostic data read successfully. These are persisted observations, not verified match evidence."
-            }
+            Self::Ready => "Your saved game data is ready.",
         }
     }
 }

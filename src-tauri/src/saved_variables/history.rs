@@ -387,7 +387,7 @@ fn parse_history(bytes: &[u8]) -> Result<HistoryView, Status> {
     });
     Ok(HistoryView {
         status: "READY",
-        message: "Local completed captures. Not verified or uploaded.",
+        message: "Saved matches loaded. Check each match for its upload status.",
         matches,
         retained_attempts: count,
         queue: None,
@@ -587,31 +587,31 @@ fn history_error(status: Status) -> HistoryView {
     let (status, message) = match status {
         Status::NotConfigured | Status::SelectSource => (
             "SELECT_SOURCE",
-            "Select your Forever installation and SavedVariables account above.",
+            "Choose your WoW folder and account in Settings.",
         ),
         Status::MissingAddon | Status::UnsupportedAddon => (
             "MISSING_ADDON",
-            "Install and enable rbgs.io (RBGS), then reload or log out.",
+            "Install and enable the RBGS addon in WoW, then use /reload or log out.",
         ),
         Status::NoSavedData => (
             "NO_SAVED_DATA",
-            "No product captures saved yet. Enable rbgs.io and use /reload or log out.",
+            "No match data saved yet. Enable the RBGS addon in WoW. After a battleground, use /reload or log out.",
         ),
         Status::UnstableFile => (
             "UNSTABLE_FILE",
-            "WoW is saving the file. Waiting for a stable copy…",
+            "WoW is saving your match data. Waiting for it to finish…",
         ),
         Status::TooLarge => (
             "INVALID_DATA",
-            "The product file exceeds the 2 MB limit. Keep a private backup.",
+            "The match data file is too large to read (over 2 MB). Back it up before getting help.",
         ),
         Status::InvalidData | Status::UnsupportedSchema => (
             "INVALID_DATA",
-            "Product data is invalid or unsupported. Check addon/client versions; data was not changed.",
+            "We could not read your match data. Check that your addons and companion are up to date. Your saved data has not been changed.",
         ),
         _ => (
             "SOURCE_UNAVAILABLE",
-            "The selected product source is unavailable. Check the folder/account above.",
+            "We cannot open your match data. Check your WoW folder and account in Settings.",
         ),
     };
     HistoryView::error(status, message)

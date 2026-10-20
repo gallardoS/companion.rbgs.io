@@ -444,7 +444,7 @@ impl Inbox {
         });
         let queue = QueueView {
             status: "READY",
-            message: "Local snapshots and server receipts are separate. A receipt confirms storage, not verification or rating.",
+            message: "Saved versions include updates to the same match. Uploaded means rbgs.io saved that version; its result still needs to be verified.",
             snapshots: items.len(),
             captures: ids.len(),
             conflicts: conflicts.len(),
@@ -506,9 +506,9 @@ fn error_queue(status: &'static str) -> QueueView {
     QueueView {
         status,
         message: if status == "STORAGE_FULL" {
-            "Local storage is full. Existing snapshots are preserved; new data has not been saved."
+            "Match storage is full. Your older data is safe, but new match data could not be saved."
         } else {
-            "Local capture storage is unavailable or unsupported. Existing files are preserved; do not delete the database."
+            "We cannot open match storage on this PC. Existing files have not been changed. Keep them when getting help."
         },
         snapshots: 0,
         captures: 0,

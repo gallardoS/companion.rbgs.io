@@ -123,6 +123,12 @@ svg { flex-shrink: 0; }
 .settings-help { padding-top: .8rem; border-top: 1px solid var(--line); }
 .settings-help p { margin: .5rem 0 0; font-size: .8125rem; }
 .background-help { margin-top: 1rem; }
+.privacy-options { display: grid; gap: .85rem; }
+.privacy-option { display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin: 0; cursor: pointer; }
+.privacy-option > span { min-width: 0; }
+.privacy-option strong { display: block; font-size: .875rem; font-weight: 500; }
+.privacy-option span span { display: block; margin-top: .25rem; color: var(--muted); font-size: .75rem; line-height: 1.5; }
+.privacy-option input { flex-shrink: 0; margin: 0; }
 .section-heading p { max-width: 24rem; margin: 0; font-size: .8125rem; }
 .section-body { min-width: 0; }
 .section-body > :last-child { margin-bottom: 0; }

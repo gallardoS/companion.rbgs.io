@@ -3,6 +3,7 @@ import { invoke } from '@tauri-apps/api/core';
 import { Icon } from './Navigation';
 import { errorDetail, Feedback } from './Feedback';
 import { gameSetup } from './gameSetup';
+import { usePrivacy } from './Privacy';
 
 type Summary = {
   schema: number; recordCount: number; clientVersion: string | null; clientBuild: string | null;
@@ -111,6 +112,7 @@ export function useSavedVariables() {
 }
 
 export function SavedVariables({ source }: { source: ReturnType<typeof useSavedVariables> }) {
+  const privacy = usePrivacy();
   const { view, busy, error, watchError, run } = source;
   const game = view?.game;
   const setup = gameSetup(source);
@@ -120,12 +122,12 @@ export function SavedVariables({ source }: { source: ReturnType<typeof useSavedV
   const addonTitle = !view && !readerFailure ? 'Checking addon data…' : !folderReady ? 'Waiting for WoW folder'
     : setup.needsSourceSelection ? 'Waiting for WoW account' : addonReady ? 'Addon detected' : setup.title;
   const folderControls = <>
-    {view?.installation && <div className="wow-folder-row"><p className="local-path">{view.installation.replace(/^\\\\\?\\/, '')}</p><button type="button" className="wow-folder-change" title="Change WoW folder" aria-label="Change WoW folder" disabled={busy} onClick={() => void run('choose_forever_installation')}><Icon name="folder" /></button></div>}
+    {view?.installation && <div className="wow-folder-row"><p className="local-path">{privacy.wowPath(view.installation)}</p><button type="button" className="wow-folder-change" title="Change WoW folder" aria-label="Change WoW folder" disabled={busy} onClick={() => void run('choose_forever_installation')}><Icon name="folder" /></button></div>}
     {folderReady && !!view?.sources.length && <div className="source-picker"><label htmlFor="settings-wow-account">WoW account</label>
       <select id="settings-wow-account" value={view.selectedSource ?? ''} disabled={busy}
         onChange={event => { if (event.target.value) void run('select_saved_variables_source', { sourceId: event.target.value }); }}>
         <option value="" disabled>Choose your WoW account</option>
-        {view.sources.map(source => <option key={source.id} value={source.id}>{source.label}</option>)}
+        {view.sources.map(source => <option key={source.id} value={source.id}>{privacy.wowAccount(source.label)}</option>)}
       </select>
     </div>}
     {folderReady && !view?.sources.length && <><p className="saved-data-note">{setup.description}</p><button disabled={busy} onClick={() => void run('saved_variables_status')}>{busy ? 'Checking…' : 'Check for WoW accounts'}</button></>}

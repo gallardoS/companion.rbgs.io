@@ -2,6 +2,7 @@ import { connectionCopy, type ConnectionState } from './connection';
 import { Icon } from './Navigation';
 import type { useSavedVariables } from './SavedVariables';
 import { gameSetup, type SettingsTarget } from './gameSetup';
+import { usePrivacy } from './Privacy';
 
 type Props = {
   accountName: string | null;
@@ -21,7 +22,8 @@ export function Overview({ accountName, connection, capturePermissions, connecti
   const { view } = source;
   const game = view?.game;
   const setup = gameSetup(source);
-  const installation = view?.installation ? view.installation.replace(/^\\\\\?\\/, '') : null;
+  const privacy = usePrivacy();
+  const installation = view?.installation ? privacy.wowPath(view.installation) : null;
   const savedAt = game?.fileModifiedAt != null ? new Date(game.fileModifiedAt * 1000) : null;
   let next: { title: string; description: string; action: string; run: () => void; disabled?: boolean; warning?: boolean } | null = null;
 
@@ -44,11 +46,11 @@ export function Overview({ accountName, connection, capturePermissions, connecti
       <button className="button-primary" disabled={next.disabled} onClick={next.run}>{next.action}<Icon name="arrow" /></button>
     </section> : <div className="readiness-steps" role="group" aria-label="Companion status">
       <div className="readiness-step"><Icon name="account" /><strong>Account connected</strong><div className="readiness-copy">
-        {accountName && <span className="readiness-value">{accountName}</span>}
+        {accountName && <span className="readiness-value">{privacy.accountName(accountName)}</span>}
         <span className="readiness-meta">Match uploads allowed</span>
       </div></div>
       <div className="readiness-step"><Icon name="folder" /><strong>WoW folder selected</strong><div className="readiness-copy">
-        {setup.selectedAccount && <span className="readiness-value">WoW account: {setup.selectedAccount.label}</span>}
+        {setup.selectedAccount && <span className="readiness-value">WoW account: {privacy.wowAccount(setup.selectedAccount.label)}</span>}
         {installation && <span className="readiness-path" title={installation}>{installation}</span>}
       </div></div>
       <div className="readiness-step"><Icon name="addon" /><strong>Addon detected</strong><div className="readiness-copy">

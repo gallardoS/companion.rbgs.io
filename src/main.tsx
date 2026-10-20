@@ -7,6 +7,7 @@ import { CaptureAssignments, type AssignmentSummary } from './CaptureAssignments
 import { ConnectionRetry } from './ConnectionRetry';
 import { connectionCopy, connectionFailure, type ConnectionState } from './connection';
 import { Overview } from './Overview';
+import { PrivacyProvider, PrivacySettings } from './Privacy';
 import { gameSetup, type SettingsTarget } from './gameSetup';
 import { errorDetail, Feedback } from './Feedback';
 import { useAssignmentActivity } from './useAssignmentActivity';
@@ -270,6 +271,7 @@ function App() {
               </section>}
             </div>
           </section>
+          <PrivacySettings />
           <section className="settings-section" aria-labelledby="settings-uploads">
             <div className="section-heading"><h2 id="settings-uploads" tabIndex={-1}>Upload options</h2></div>
             <div className="section-body"><div ref={setUploadSettingsTarget} />{(!accountId || !capturePermissions) && <p>Connect your account and allow match uploads to manage upload options.</p>}</div>
@@ -283,5 +285,5 @@ function App() {
 }
 
 const root = createRoot(document.getElementById('root')!);
-root.render(<StrictMode><App /></StrictMode>);
+root.render(<StrictMode><PrivacyProvider><App /></PrivacyProvider></StrictMode>);
 if (import.meta.hot) import.meta.hot.dispose(() => root.unmount());

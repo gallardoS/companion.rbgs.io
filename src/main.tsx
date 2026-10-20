@@ -140,7 +140,7 @@ function App() {
         </section>
         <SavedVariables activeTab={activeTab} onTabChange={changeTab} />
         <section id="panel-captures" role="tabpanel" aria-labelledby="tab-captures" hidden={activeTab !== 'captures'} tabIndex={0}>
-          {connected && capturePermissions && !pairing && !webConnecting ? <CaptureAssignments key={accountId} /> : <div className="empty-state"><span className="empty-icon"><Icon name="captures" /></span><h2>{connected ? 'Enable capture access' : 'Connect to get started'}</h2><p>{connected ? 'Approve capture permissions to see your test assignments and sync saved captures.' : 'Connect your rbgs.io account to see your test assignments and sync saved captures.'}</p><button className="button-primary" onClick={() => changeTab('account')}>Go to account<Icon name="arrow" /></button></div>}
+          {connected && capturePermissions && !pairing && !webConnecting ? <CaptureAssignments key={accountId} accountId={accountId} /> : <div className="empty-state"><span className="empty-icon"><Icon name="captures" /></span><h2>{connected ? 'Enable capture access' : 'Connect to get started'}</h2><p>{connected ? 'Approve capture permissions to see your test assignments and sync saved captures.' : 'Connect your rbgs.io account to see your test assignments and sync saved captures.'}</p><button className="button-primary" onClick={() => changeTab('account')}>Go to account<Icon name="arrow" /></button></div>}
         </section>
       </div>
       <footer className="app-footer"><span>Windows companion</span><span className="footer-game">World of Warcraft: Forever</span><span className="brand">rbgs.io</span></footer>

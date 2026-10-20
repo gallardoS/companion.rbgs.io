@@ -232,3 +232,5 @@ svg { flex-shrink: 0; }
   .command-field input { flex-basis: 100%; }
   .command-field .command-copy { width: 100%; }
 }
+
+.uploads-paused { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: .25rem .75rem; padding: .4rem .85rem; border: 1px solid #e8c78c35; border-radius: .5rem; color: var(--warning); font-size: .8125rem; }

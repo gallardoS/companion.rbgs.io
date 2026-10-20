@@ -234,3 +234,12 @@ svg { flex-shrink: 0; }
 }
 
 .uploads-paused { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: .25rem .75rem; padding: .4rem .85rem; border: 1px solid #e8c78c35; border-radius: .5rem; color: var(--warning); font-size: .8125rem; }
+
+.feedback { margin: .75rem 0; padding: .8rem 1rem; border-left: 2px solid var(--warning); border-radius: 0 .4rem .4rem 0; background: #e8c78c08; }
+.feedback-heading { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: .5rem 1rem; }
+.feedback-heading > strong { color: var(--warning); font-size: .875rem; font-weight: 600; }
+.feedback-heading > button { min-height: 36px; font-size: .8125rem; }
+.feedback p { margin: .35rem 0 0; font-size: .8125rem; overflow-wrap: anywhere; }
+.feedback details { margin-top: .4rem; }
+.feedback summary { color: var(--muted); font-size: .75rem; }
+.feedback details[open] > summary { margin-bottom: .25rem; }

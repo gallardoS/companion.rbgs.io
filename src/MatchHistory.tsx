@@ -54,7 +54,6 @@ function shortStamp(value: string) {
 }
 function team(value: string | null) { return value === '0' ? 'Horde' : value === '1' ? 'Alliance' : 'Unknown'; }
 function character(value: Identity) { return `${value.name}${value.realm ? ` · ${value.realm}` : ''}`; }
-
 function matchResult(match: Match): 'victory' | 'defeat' | null {
   const name = (value: string) => value.normalize('NFC').trim().toLowerCase();
   const realm = (value: string) => name(value).replace(/\s+/g, '');
@@ -164,9 +163,9 @@ export function DeliveryBadge({ match, queue }: { match: Match; queue: Queue | n
   return <span className={`state-label state-${tone}`} title={state ? deliveryHelp[state] : undefined}>{state ? deliveryLabels[state] : 'Saved on this PC'}</span>;
 }
 
-export function MatchHistory({ tests, accountId, sourceSelected, onSettings, onUploads }: { tests: ClosedTest[]; accountId: string; sourceSelected: boolean; onSettings: () => void; onUploads: () => void }) {
+export function MatchHistory({ history, tests, accountId, sourceSelected, onSettings, onUploads }: { history: ReturnType<typeof useMatchHistory>; tests: ClosedTest[]; accountId: string; sourceSelected: boolean; onSettings: () => void; onUploads: () => void }) {
   const id = useId();
-  const { view, error, busy, refresh } = useMatchHistory(sourceSelected ? 'selected-source' : null);
+  const { view, error, busy, refresh } = history;
   const [limit, setLimit] = useState(5);
   const hiddenTests = useHiddenTests(accountId);
   const closedTestsRef = useRef<HTMLDetailsElement>(null);

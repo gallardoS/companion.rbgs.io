@@ -1,8 +1,8 @@
-import { useEffect, useId, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { invoke } from '@tauri-apps/api/core';
-import { MatchHistory } from './MatchHistory';
-import type { ClosedTest } from './testHistory';
-import { Icon, type TabId } from './Navigation';
+import { Icon } from './Navigation';
+import { errorDetail, Feedback } from './Feedback';
+import { gameSetup } from './gameSetup';
 
 type Summary = {
   schema: number; recordCount: number; clientVersion: string | null; clientBuild: string | null;
@@ -10,9 +10,10 @@ type Summary = {
   observedMap: string | null; lastRecordAt: number | null; latestScoreboardRows: number | null;
   rawWinner: string | null; lastCapturePhase: string | null; compatibility: string;
 };
-type SourceView = {
+type GameView = { status: string; message: string; fileModifiedAt: number | null; characterName: string | null; realm: string | null; recordCount: number };
+export type SourceView = {
   installation: string | null; sources: { id: string; label: string }[]; selectedSource: string | null;
-  status: string; message: string; data: Summary | null; fileModifiedAt: number | null; readAt: number | null;
+  status: string; message: string; data: Summary | null; game: GameView; fileModifiedAt: number | null; readAt: number | null;
 };
 const statuses = ['NOT_CONFIGURED', 'WRONG_CLIENT', 'MISSING_ADDON', 'UNSUPPORTED_ADDON', 'NO_SAVED_DATA', 'SELECT_SOURCE',
   'SOURCE_UNAVAILABLE', 'UNSTABLE_FILE', 'TOO_LARGE', 'INVALID_DATA', 'UNSUPPORTED_SCHEMA', 'UNSUPPORTED_CLIENT', 'UNKNOWN_CLIENT', 'READY'];
@@ -24,6 +25,9 @@ function validView(value: unknown): value is SourceView {
   if (!nullableString(view.installation) || !nullableString(view.selectedSource) || !statuses.includes(view.status)
     || typeof view.message !== 'string' || !nullableNumber(view.fileModifiedAt) || !nullableNumber(view.readAt)
     || !Array.isArray(view.sources) || view.sources.length > 64 || !view.sources.every(s => s && typeof s.id === 'string' && typeof s.label === 'string')) return false;
+  const game = view.game;
+  if (!game || !statuses.includes(game.status) || typeof game.message !== 'string' || !nullableNumber(game.fileModifiedAt)
+    || ![game.characterName, game.realm].every(nullableString) || !Number.isSafeInteger(game.recordCount) || game.recordCount < 0 || game.recordCount > 8) return false;
   if (view.data === null) return true;
   const data = view.data;
   return !!data && data.schema === 1 && Number.isSafeInteger(data.recordCount) && data.recordCount >= 0 && data.recordCount <= 300
@@ -37,8 +41,7 @@ function time(value: number | null): string {
   return Number.isNaN(date.valueOf()) ? 'Unknown' : date.toLocaleString();
 }
 
-export function SavedVariables({ activeTab, onTabChange, accountId, tests }: { activeTab: TabId; onTabChange: (tab: TabId) => void; accountId: string; tests: ClosedTest[] }) {
-  const id = useId();
+export function useSavedVariables() {
   const [view, setView] = useState<SourceView | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -56,7 +59,7 @@ export function SavedVariables({ activeTab, onTabChange, accountId, tests }: { a
       if (disposed) return;
       if (!validView(result)) throw new Error('Invalid saved-data response');
       setView(result);
-    }).catch(err => { if (!disposed) { setView(null); setError(String(err)); } })
+    }).catch(err => { if (!disposed) { resync.current = true; setView(null); setError(errorDetail(err)); } })
       .finally(() => { if (!disposed) { inFlight.current = false; setBusy(false); } });
     return () => { disposed = true; mounted.current = false; };
   }, []);
@@ -81,7 +84,7 @@ export function SavedVariables({ activeTab, onTabChange, accountId, tests }: { a
         } catch (err) {
           if (!disposed && requestGeneration === generation.current && !inFlight.current) {
             setView(current => current ? { ...current, data: null, fileModifiedAt: null, readAt: null } : null);
-            setWatchError(String(err));
+            setWatchError(errorDetail(err));
             resync.current = true;
           }
         }
@@ -101,53 +104,57 @@ export function SavedVariables({ activeTab, onTabChange, accountId, tests }: { a
       if (result === null && ['choose_forever_installation', 'scan_forever_installations'].includes(command)) return; // Native dialog cancelled.
       if (!validView(result)) throw new Error('Invalid saved-data response');
       setView(result);
-    } catch (err) { if (mounted.current) { setView(current => current ? { ...current, data: null, fileModifiedAt: null, readAt: null } : null); setError(String(err)); } }
+    } catch (err) { if (mounted.current) { setView(current => current ? { ...current, data: null, fileModifiedAt: null, readAt: null } : null); setError(errorDetail(err)); } }
     finally { inFlight.current = false; if (mounted.current) setBusy(false); }
   }
-  const data = view?.data;
-  const warning = view && ['WRONG_CLIENT', 'MISSING_ADDON', 'UNSUPPORTED_ADDON', 'SOURCE_UNAVAILABLE', 'UNSTABLE_FILE', 'TOO_LARGE', 'INVALID_DATA', 'UNSUPPORTED_SCHEMA', 'UNSUPPORTED_CLIENT'].includes(view.status);
-  return <>
-    <section id="panel-game" role="tabpanel" aria-labelledby="tab-game" hidden={activeTab !== 'game'} tabIndex={0}>
-    <section className="settings-section" aria-labelledby={`${id}-heading`}>
-    <div className="section-heading"><h2 id={`${id}-heading`}>Forever installation</h2>
-    <p>We check the usual World of Warcraft folders automatically. Choose your installation or scan another drive.</p></div>
-    <div className="section-body"><div className="button-group">
-    <button className="button-primary" disabled={busy} onClick={() => void run('choose_forever_installation')}>{view?.installation ? 'Change Forever folder' : 'Choose Forever folder'}</button>
-    <button disabled={busy} onClick={() => void run('scan_forever_installations')}>Scan Folders</button></div>
-    {view?.installation && <p className="local-path">{view.installation.replace(/^\\\\\?\\/, '')}</p>}
-    {!!view?.sources.length && <div className="source-picker"><label htmlFor={`${id}-source`}>SavedVariables account</label>
-      <select id={`${id}-source`} value={view.selectedSource ?? ''} disabled={busy}
+  return { view, busy, error, watchError, run };
+}
+
+export function SavedVariables({ source }: { source: ReturnType<typeof useSavedVariables> }) {
+  const { view, busy, error, watchError, run } = source;
+  const game = view?.game;
+  const setup = gameSetup(source);
+  const { folderReady, readerFailure } = setup;
+  const addonReady = setup.ready;
+  const prerequisitesReady = folderReady && !setup.needsSourceSelection;
+  const addonTitle = !view && !readerFailure ? 'Checking addon data…' : !folderReady ? 'Waiting for WoW folder'
+    : setup.needsSourceSelection ? 'Waiting for WoW account' : addonReady ? 'Addon detected' : setup.title;
+  const folderControls = <>
+    {view?.installation && <div className="wow-folder-row"><p className="local-path">{view.installation.replace(/^\\\\\?\\/, '')}</p><button type="button" className="wow-folder-change" title="Change WoW folder" aria-label="Change WoW folder" disabled={busy} onClick={() => void run('choose_forever_installation')}><Icon name="folder" /></button></div>}
+    {folderReady && !!view?.sources.length && <div className="source-picker"><label htmlFor="settings-wow-account">WoW account</label>
+      <select id="settings-wow-account" value={view.selectedSource ?? ''} disabled={busy}
         onChange={event => { if (event.target.value) void run('select_saved_variables_source', { sourceId: event.target.value }); }}>
-        <option value="" disabled>Choose an account source</option>
+        <option value="" disabled>Choose your WoW account</option>
         {view.sources.map(source => <option key={source.id} value={source.id}>{source.label}</option>)}
       </select>
     </div>}
-    </div></section>
-    <section className="settings-section" aria-labelledby={`${id}-data-heading`}><div className="section-heading"><h2 id={`${id}-data-heading`}>Saved game data</h2><p>Data read from the RBGSCompatibility addon after /reload or logout.</p></div><div className="section-body">
-    <button disabled={busy} onClick={() => void run('saved_variables_status')}>Refresh saved data</button>
-    {busy && <p role="status">Checking local folders and saved data…</p>}
-    {error && <p role="alert">{error}</p>}
-    {watchError && <p role="alert">Automatic updates unavailable: {watchError}. Retrying…</p>}
-    {!watchError && view?.selectedSource && <p className="saved-data-note">Watching selected saved file. Updates appear automatically after /reload or logout.</p>}
-    {!busy && !error && !watchError && <p role={warning ? 'alert' : 'status'}>{view?.message ?? 'Loading saved-data settings…'}</p>}
-    {!busy && !error && !watchError && data && <details className="diagnostics"><summary>Diagnostic details<span>{data.recordCount} records</span></summary><dl className="saved-data-summary">
-      <div><dt>Saved file modified</dt><dd>{time(view.fileModifiedAt)}</dd></div>
-      <div><dt>Read at</dt><dd>{time(view.readAt)}</dd></div>
-      <div><dt>Client version / build / interface</dt><dd>{data.clientVersion ?? 'Unknown'} / {data.clientBuild ?? 'Unknown'} / {data.clientInterface ?? 'Unknown'}</dd></div>
-      <div><dt>Retained diagnostic records</dt><dd>{data.recordCount}</dd></div>
-      <div><dt>Observed character</dt><dd>{data.observedCharacter ?? 'Unknown'} · {data.observedRealm ?? 'Unknown'}</dd></div>
-      <div><dt>Observed map</dt><dd>{data.observedMap ?? 'Unknown'}</dd></div>
-      <div><dt>Last saved record timestamp</dt><dd>{time(data.lastRecordAt)}</dd></div>
-      <div><dt>Latest scoreboard rows</dt><dd>{data.latestScoreboardRows ?? 'Unknown'}</dd></div>
-      <div><dt>Raw winner code (unverified)</dt><dd>{data.rawWinner ?? 'Unknown'}</dd></div>
-      <div><dt>Latest capture marker</dt><dd>{data.lastCapturePhase ?? 'Unknown'}</dd></div>
-    </dl></details>}
-    </div></section>
-    <aside className="info-note"><Icon name="game" /><p>Use <code>/reload</code> or log out in WoW to save new data. Keep the companion open for automatic updates. SavedVariables do not update continuously.</p></aside>
-    <p className="saved-data-note">File freshness and device connectivity do not establish current in-game participation, account ownership or a verified match.</p>
-    </section>
-    <section id="panel-history" role="tabpanel" aria-labelledby="tab-history" hidden={activeTab !== 'history'} tabIndex={0}>
-      {view?.selectedSource || tests.length > 0 ? <MatchHistory key={`${view?.installation}/${view?.selectedSource}/${accountId}`} tests={tests} accountId={accountId} sourceSelected={!!view?.selectedSource} onSettings={() => onTabChange('account')} onUploads={() => onTabChange('captures')} /> : <div className="empty-state"><span className="empty-icon"><Icon name="history" /></span><h2>Choose your game account</h2><p>Select your Forever installation and saved-data account to load completed captures on this PC.</p><button className="button-primary" onClick={() => onTabChange('game')}>Set up game data<Icon name="arrow" /></button></div>}
-    </section>
+    {folderReady && !view?.sources.length && <><p className="saved-data-note">{setup.description}</p><button disabled={busy} onClick={() => void run('saved_variables_status')}>{busy ? 'Checking…' : 'Check for WoW accounts'}</button></>}
+    <div className="button-group">
+      <button className="button-link" disabled={busy} onClick={() => void run('scan_forever_installations')}>Search for WoW</button>
+    </div>
   </>;
+  return <section aria-label="Game data settings">
+    <section className="settings-section" aria-labelledby="settings-folder">
+    <div className="section-heading"><h2 id="settings-folder" tabIndex={-1}>WoW folder</h2>
+    </div>
+    <div className="section-body"><div className="settings-control-row">
+      <div className={`settings-state ${folderReady ? 'is-complete' : readerFailure ? 'is-warning' : 'is-pending'}`}><Icon name={folderReady ? 'check' : 'game'} /><strong>{folderReady ? 'WoW folder selected' : readerFailure ? 'Cannot check WoW folder' : view ? 'Choose your WoW folder' : 'Looking for WoW…'}</strong></div>
+      {!view?.installation && <button className="button-primary" disabled={busy} onClick={() => void run('choose_forever_installation')}>Choose WoW folder</button>}
+    </div>
+    {folderControls}
+    {!folderReady && view && <p className="saved-data-note">{setup.description}</p>}
+    </div></section>
+    <section className="settings-section" aria-labelledby="settings-addon"><div className="section-heading"><h2 id="settings-addon" tabIndex={-1}>rbgs.io addon</h2></div><div className="section-body">
+    <div className="settings-control-row"><div className={`settings-state ${addonReady && !busy ? 'is-complete' : readerFailure || folderReady && !!view?.selectedSource && !busy ? 'is-warning' : 'is-pending'}`} role="status"><Icon name={addonReady && !busy ? 'check' : 'game'} /><strong>{addonTitle}</strong></div>
+      {prerequisitesReady && !addonReady && !readerFailure && <button disabled={busy} onClick={() => void run('saved_variables_status')}>{busy ? 'Checking…' : 'Check addon data'}</button>}
+    </div>
+    {readerFailure ? <Feedback title="Cannot read saved game data" detail={error ?? watchError} action={<button disabled={busy} onClick={() => void run('saved_variables_status')}>{busy ? 'Retrying…' : 'Retry addon data'}</button>}>Check the WoW folder and account above. Automatic checks will also retry.</Feedback>
+      : prerequisitesReady && !addonReady && <p className="saved-data-note">{setup.description}</p>}
+    {addonReady && <><p className="settings-value">{game?.characterName ? `Last saved: ${game.characterName}${game.realm ? ` · ${game.realm}` : ''}` : 'Ready for your first match.'}</p><details className="settings-details"><summary>Saved data and checks</summary><dl className="saved-data-summary">
+      <div><dt>File last saved</dt><dd>{time(game!.fileModifiedAt)}</dd></div>
+      <div><dt>Recordings in the WoW file</dt><dd>{game!.recordCount}</dd></div>
+    </dl><button disabled={busy} onClick={() => void run('saved_variables_status')}>{busy ? 'Checking…' : 'Refresh game data'}</button></details></>}
+    </div></section>
+    <details className="settings-help"><summary>How saving works</summary><p>WoW saves addon data when you use <code>/reload</code> or log out. Keep the companion running to read it automatically. The character shown comes from saved data; it may not be the one you are playing now.</p></details>
+    </section>;
 }

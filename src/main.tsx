@@ -1,37 +1,58 @@
 import { StrictMode, useCallback, useEffect, useRef, useState } from 'react';
 import { invoke } from '@tauri-apps/api/core';
 import { createRoot } from 'react-dom/client';
-import { SavedVariables } from './SavedVariables';
+import { SavedVariables, useSavedVariables } from './SavedVariables';
+import { MatchHistory, useMatchHistory } from './MatchHistory';
 import { CaptureAssignments, type AssignmentSummary } from './CaptureAssignments';
-import { useAssignmentActivity } from './useAssignmentActivity';
 import { ConnectionRetry } from './ConnectionRetry';
 import { connectionCopy, connectionFailure, type ConnectionState } from './connection';
+import { Overview } from './Overview';
+import { gameSetup, type SettingsTarget } from './gameSetup';
+import { errorDetail, Feedback } from './Feedback';
+import { useAssignmentActivity } from './useAssignmentActivity';
 import { Icon, Navigation, tabs, type TabId } from './Navigation';
 import './styles.css';
 
 function App() {
-  const [activeTab, setActiveTab] = useState<TabId>('account');
+  const [activeTab, setActiveTab] = useState<TabId>('home');
+  const [uploadSettingsTarget, setUploadSettingsTarget] = useState<HTMLDivElement | null>(null);
+  const currentTab = useRef<TabId>('home');
+  const tabScroll = useRef<Record<TabId, number>>({ home: 0, history: 0, settings: 0 });
+  const [connection, setConnection] = useState<ConnectionState>('checking');
   const [checking, setChecking] = useState(true);
   const content = useRef<HTMLElement>(null);
   const [pairing, setPairing] = useState<{ code: string; expiresAt: string; approvalUrl: string } | null>(null);
-  const [connection, setConnection] = useState<ConnectionState>('checking');
-  const connected = connection === 'connected';
   const [capturePermissions, setCapturePermissions] = useState(false);
   const [accountId, setAccountId] = useState('');
-  const [assignmentSummary, setAssignmentSummary] = useState<(AssignmentSummary & { accountId: string }) | null>(null);
-  const onAssignmentSummary = useCallback((summary: AssignmentSummary) => setAssignmentSummary({ ...summary, accountId }), [accountId]);
+  const [accountName, setAccountName] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [webConnecting, setWebConnecting] = useState(false);
-  const webActive=useRef(false);
-  const working=busy||webConnecting;
-  const activity = useAssignmentActivity(accountId, connected && capturePermissions && !pairing && !webConnecting);
+  const webActive = useRef(false);
+  const working = busy || webConnecting;
+  const connected = connection === 'connected';
+  const connecting = !!pairing || webConnecting;
+  const accountReady = connected && capturePermissions && !connecting;
+  const activity = useAssignmentActivity(accountId, connected && capturePermissions && !connecting);
   const [focusCaptureId, setFocusCaptureId] = useState<string | null>(null);
+  const [noticeError, setNoticeError] = useState('');
+  const [openingMatch, setOpeningMatch] = useState(false);
+  const openRequest = useRef(0);
+  const currentAccount = useRef(accountId);
+  currentAccount.current = accountId;
   const lastOpen = useRef('');
-  const [message, setMessage] = useState('Checking saved connection…');
+  const [message, setMessage] = useState('');
+  const [pairingError, setPairingError] = useState<string | null>(null);
   const [connectionError, setConnectionError] = useState<string | null>(null);
   const [storageWarning, setStorageWarning] = useState<string | null>(null);
+  const [assignmentSummary, setAssignmentSummary] = useState<(AssignmentSummary & { accountId: string }) | null>(null);
   const inFlight = useRef(false);
   const checkEpoch = useRef(0);
+  const source = useSavedVariables();
+  const historyScope = source.view?.selectedSource && !connecting
+    ? JSON.stringify([source.view.installation, source.view.selectedSource, accountId]) : null;
+  const history = useMatchHistory(historyScope);
+  const onAssignmentSummary = useCallback((summary: AssignmentSummary) => setAssignmentSummary({ ...summary, accountId }), [accountId]);
+
   async function check() {
     const epoch = ++checkEpoch.current;
     setChecking(true);
@@ -40,6 +61,7 @@ function App() {
       if (epoch !== checkEpoch.current) return;
       setConnection('connected');
       setAccountId(status.accountId ?? '');
+      setAccountName(typeof status.accountName === 'string' && status.accountName.trim() ? status.accountName : null);
       setCapturePermissions(status.capturePermissions === true);
       setConnectionError(null);
       setStorageWarning(status.localStorageWarning ?? null);
@@ -49,9 +71,9 @@ function App() {
       const failure = connectionFailure(error);
       setConnection(failure.state);
       setConnectionError(failure.message);
-      setMessage(connectionCopy[failure.state].description);
       if (failure.state === 'not-paired' || failure.state === 'auth-required' || failure.state === 'storage-unavailable') {
         setAccountId('');
+        setAccountName(null);
         setCapturePermissions(false);
         setStorageWarning(null);
       }
@@ -60,24 +82,56 @@ function App() {
     }
   }
 
-  useEffect(() => { const refresh=()=>{if(!pairing&&!webActive.current)void check();};refresh();const timer=window.setInterval(refresh,15000);window.addEventListener('focus',refresh);return()=>{++checkEpoch.current;window.clearInterval(timer);window.removeEventListener('focus',refresh);}; }, [pairing]);
-  useEffect(()=>{
-    let disposed=false;let last='';let inProgress=false;
-    const read=async()=>{
-      if(inProgress)return;inProgress=true;
+  useEffect(() => {
+    const refresh = () => { if (!pairing && !webActive.current) void check(); };
+    refresh();
+    const timer = window.setInterval(refresh, 15000);
+    window.addEventListener('focus', refresh);
+    return () => { ++checkEpoch.current; window.clearInterval(timer); window.removeEventListener('focus', refresh); };
+  }, [pairing]);
+
+  useEffect(() => {
+    let disposed = false;
+    let last = '';
+    let inProgress = false;
+    const read = async () => {
+      if (inProgress) return;
+      inProgress = true;
       try {
-        const progress=await invoke<{status:string;message:string|null}>('web_connection_state');
-        const signature=JSON.stringify(progress);
-        if(disposed||signature===last)return;last=signature;
-        const pending=progress.status==='CONNECTING';webActive.current=pending;setWebConnecting(pending);
-        if(pending){++checkEpoch.current;setChecking(false);setPairing(null);setAccountId('');setCapturePermissions(false);setConnection('checking');setConnectionError(null);setMessage(progress.message??'Connecting from rbgs.io…');}
-        else if(progress.status==='CONNECTED'){setPairing(null);void check();}
-        else if(progress.status==='ERROR'){setConnectionError(progress.message);setMessage(progress.message??'Connection could not be completed.');}
-      }catch{/* The normal connection check remains available. */}finally{inProgress=false;}
+        const progress = await invoke<{ status: string; message: string | null }>('web_connection_state');
+        const signature = JSON.stringify(progress);
+        if (disposed || signature === last) return;
+        last = signature;
+        const pending = progress.status === 'CONNECTING';
+        webActive.current = pending;
+        setWebConnecting(pending);
+        if (pending) {
+          setPairingError(null);
+          ++checkEpoch.current;
+          setChecking(false);
+          setPairing(null);
+          setAccountId('');
+          setAccountName(null);
+          setCapturePermissions(false);
+          setConnection('checking');
+          setConnectionError(null);
+          setMessage(progress.message ?? 'Connecting from rbgs.io…');
+        } else if (progress.status === 'CONNECTED') {
+          setPairingError(null);
+          setPairing(null);
+          void check();
+        } else if (progress.status === 'ERROR') {
+          setPairingError(progress.message ?? 'Connection could not be completed.');
+          void check();
+        }
+      } catch {}
+      finally { inProgress = false; }
     };
-    void read();const timer=window.setInterval(()=>void read(),1000);
-    return()=>{disposed=true;window.clearInterval(timer);};
-  },[]);
+    void read();
+    const timer = window.setInterval(() => void read(), 1000);
+    return () => { disposed = true; window.clearInterval(timer); };
+  }, []);
+
   useEffect(() => {
     if (!pairing) return;
     let disposed = false;
@@ -86,81 +140,148 @@ function App() {
       inFlight.current = true;
       try {
         const status = await invoke<string>('poll_pairing');
-        if (disposed) return;
-        if (status === 'PAIRED') { setPairing(null); await check(); }
-      } catch (error) { if (!disposed) setMessage(String(error)); }
+        if (!disposed) {
+          setPairingError(null);
+          if (status === 'PAIRED') { setPairing(null); await check(); }
+        }
+      } catch (error) { if (!disposed) setPairingError(errorDetail(error)); }
       finally { inFlight.current = false; }
     };
     const timer = window.setInterval(() => void poll(), 5000);
     return () => { disposed = true; window.clearInterval(timer); };
   }, [pairing]);
-  async function start(captures = true) {
-    if (working) return;
-    setBusy(true);
-    try {
-      const result = await invoke<{ code: string; expiresAt: string; approvalUrl: string }>('start_pairing', { capturePermissions: captures });
-      setPairing(result); setConnectionError(null); setMessage('Waiting for your approval in web Settings.');
-      try { await invoke('open_pairing_browser'); } catch { setMessage('Connection request created. Use Approve in browser, or the manual code option if your browser cannot open.'); }
-    } catch (error) { setMessage(String(error)); }
-    finally { setBusy(false); }
-  }
+
   function changeTab(tab: TabId) {
+    tabScroll.current[currentTab.current] = content.current?.scrollTop ?? 0;
+    currentTab.current = tab;
     setActiveTab(tab);
-    content.current?.scrollTo(0, 0);
     document.getElementById(`tab-${tab}`)?.focus();
+    requestAnimationFrame(() => {
+      if (currentTab.current === tab) content.current?.scrollTo(0, tabScroll.current[tab]);
+    });
   }
-  useEffect(() => { setFocusCaptureId(null); lastOpen.current = ''; }, [accountId]);
+
+  function openSettings(target: SettingsTarget = 'account') {
+    changeTab('settings');
+    requestAnimationFrame(() => {
+      const field = document.getElementById(`settings-${target}`);
+      field?.focus({ preventScroll: true });
+      field?.scrollIntoView({ block: 'nearest' });
+    });
+  }
+
+  useEffect(() => {
+    ++openRequest.current;
+    setOpeningMatch(false);
+    setFocusCaptureId(null);
+    setNoticeError('');
+    lastOpen.current = '';
+  }, [accountId]);
+
   useEffect(() => {
     const signature = `${accountId}/${activity?.openSequence ?? 0}`;
     if (activity?.openCaptureId && signature !== lastOpen.current) {
       lastOpen.current = signature;
       setFocusCaptureId(activity.openCaptureId);
-      changeTab('captures');
+      changeTab('home');
     }
   }, [accountId, activity?.openCaptureId, activity?.openSequence]);
+  const readyCaptureId = activity?.captureIds.find(id => !history.view?.matches.some(match => match.captureId === id));
+  async function openTestMatch() {
+    if (!readyCaptureId || openingMatch) return;
+    const request = ++openRequest.current;
+    const requestAccount = accountId;
+    setOpeningMatch(true); setNoticeError('');
+    try {
+      await invoke('open_test_match', { captureId: readyCaptureId });
+      if (request !== openRequest.current || requestAccount !== currentAccount.current) return;
+      setFocusCaptureId(readyCaptureId); changeTab('home');
+    }
+    catch { if (request === openRequest.current && requestAccount === currentAccount.current) setNoticeError('This test match could not be opened. Check your connection and try again.'); }
+    finally { if (request === openRequest.current) setOpeningMatch(false); }
+  }
+
+  async function start() {
+    if (working) return;
+    changeTab('settings');
+    ++checkEpoch.current;
+    setBusy(true);
+    setPairingError(null);
+    setMessage('Preparing your connection…');
+    try {
+      const result = await invoke<{ code: string; expiresAt: string; approvalUrl: string }>('start_pairing', { capturePermissions: true });
+      setPairing(result);
+      setConnectionError(null);
+      setMessage('');
+      try { await invoke('open_pairing_browser'); }
+      catch { setMessage('Click Approve in browser to continue. If it does not open, use the code below.'); }
+    } catch (error) { setMessage(''); setPairingError(errorDetail(error)); }
+    finally { setBusy(false); setChecking(false); }
+  }
+
+  function openUploads() {
+    openSettings('uploads');
+  }
+
   const selected = tabs.find(tab => tab.id === activeTab)!;
-  const connectionLabel = webConnecting ? 'Connecting…' : pairing ? 'Awaiting approval' : connectionCopy[connection].label;
+  const copy = connectionCopy[connection];
+  const canPair = connection === 'not-paired' || connection === 'auth-required';
+  const retryConnection = () => void check();
+  const connectionAction = canPair ? () => void start() : retryConnection;
+  const queue = history.view?.queue;
+  const companionReady = accountReady && gameSetup(source).ready && !storageWarning && !history.error
+    && (!queue || queue.status === 'READY' && queue.conflicts === 0 && queue.needsAuth === 0 && queue.waitingAssignment === 0 && (queue.blocked ?? 0) === 0);
   return <div className="app-shell">
     <header className="app-header"><div className="header-inner">
-      <div className="brand-lockup"><span className="brand">rbgs.io</span><span className="product-name">Desktop app</span></div>
-      <div className="connection-status"><span className={`connection-badge ${pairing || webConnecting ? 'is-pending' : connected ? 'is-connected' : checking ? 'is-pending' : ''}`} role="status"><span className="status-dot" />{connectionLabel}</span>
-        {connectionError && !pairing && <ConnectionRetry checking={checking} disabled={working} onRetry={() => void check()} />}
+      <div className="brand-lockup"><span className="brand">rbgs.io</span><span className="product-name">Companion</span></div>
+      <div className="connection-status"><span className={`connection-badge ${connecting ? 'is-pending' : connected ? 'is-connected' : connection === 'checking' ? 'is-pending' : 'is-unavailable'}`} role="status"><span className="status-dot" />{webConnecting ? 'Connecting…' : pairing ? 'Waiting for approval' : copy.label}</span>
+        {connectionError && !connecting && <ConnectionRetry checking={checking} disabled={working} onRetry={retryConnection} />}
       </div>
     </div></header>
     <Navigation active={activeTab} onChange={changeTab} />
     <main className="page-scroll" ref={content}>
       <div className="content">
-        <header className="page-heading"><p className="eyebrow">WORLD OF WARCRAFT: FOREVER</p><h1>{selected.title}</h1><p>{selected.description}</p></header>
-        <section id="panel-account" role="tabpanel" aria-labelledby="tab-account" hidden={activeTab !== 'account'} tabIndex={0}>
-          {storageWarning && <p className="storage-warning" role="alert">{storageWarning}</p>}
-          {(!connected || pairing || message) && <section className="settings-section" aria-labelledby="connection-heading">
-            <div className="section-heading"><h2 id="connection-heading">rbgs.io account</h2></div>
-            <div className="section-body">
-              <div className="connection-notice"><span className="notice-icon"><Icon name="account" /></span><div><strong>{pairing ? 'Approve in your browser' : checking ? 'Checking this PC' : connected ? 'Account action required' : connectionCopy[connection].title}</strong><p role={connectionError ? 'alert' : 'status'}>{message}</p></div></div>
-              {!connected && !webConnecting && <div className="device-form">
-                <button className="button-primary" disabled={working || checking} onClick={() => void (pairing || connection === 'not-paired' || connection === 'auth-required' ? start() : check())}>{busy ? 'Creating request…' : pairing ? 'Generate a new code' : connectionCopy[connection].action}<Icon name="arrow" /></button></div>}
-              {pairing && <section className="pairing-panel" aria-label="Pairing"><h3>Finish connecting</h3><p>Approve this PC and its requested permissions in your browser. Connection finishes automatically.</p>
-                <button className="button-primary" disabled={busy} onClick={()=>void invoke('open_pairing_browser').catch(error=>setMessage(String(error)))}>Approve in browser<Icon name="arrow" /></button>
-                <details><summary>Use a code manually</summary><output className="pairing-code">{pairing.code}</output></details><p className="field-hint">Expires at {new Date(pairing.expiresAt).toLocaleTimeString()}.</p>
-                <button disabled={busy} onClick={() => void invoke<string>('poll_pairing').then(status => { if (status === 'PAIRED') { setPairing(null); void check(); } else { setMessage('Waiting for your approval in web Settings.'); } }).catch(error =>setMessage(String(error)))}>Check approval</button>
-              </section>}
-              {!connected && <p className="field-hint">Approve only the code shown in your own companion.</p>}
-            </div>
-          </section>}
-          <section className="settings-section" aria-labelledby="permissions-heading"><div className="section-heading"><h2 id="permissions-heading">Capture permissions</h2><p>Allow the companion to read your assignments and upload saved captures.</p></div><div className="section-body">
-            <span className={`permission-label ${connected && capturePermissions ? 'is-enabled' : ''}`}><Icon name={connected && capturePermissions ? 'check' : 'captures'} />{connected && capturePermissions ? 'Capture access enabled' : 'Approval required'}</span>
-            {connected && !capturePermissions && <button className="button-primary" disabled={working} onClick={() => void start(true)}>Enable capture permissions</button>}
-            <p className="field-hint">{!connected ? 'Connect your account to approve capture access.' : capturePermissions ? 'Assignments and saved-capture uploads are available in the Captures tab.' : 'Approve assignment access and saved-capture uploads in web Settings.'}</p>
-          </div></section>
+        <header className="page-heading"><h1>{selected.title}</h1></header>
+        {readyCaptureId && activeTab !== 'home' && <aside className="test-ready-notice" aria-label="Test match ready" role="status"><div><strong>Test match ready</strong><p>Get your match command before entering the battleground.</p>{noticeError && <p>{noticeError}</p>}</div><button className="button-primary" disabled={openingMatch} onClick={() => void openTestMatch()}>{openingMatch ? 'Opening…' : 'View test match'}<Icon name="arrow" /></button></aside>}
+        <section id="panel-home" role="tabpanel" aria-labelledby="tab-home" hidden={activeTab !== 'home'} tabIndex={0}>
+          {!!accountId && capturePermissions && <CaptureAssignments key={accountId} accountId={accountId} enabled={connected && !connecting} companionReady={companionReady} history={history.view} onSummary={onAssignmentSummary} uploadSettingsTarget={uploadSettingsTarget} activityVersion={activity?.version ?? 0} focusCaptureId={focusCaptureId} />}
+          <Overview accountName={accountName} connection={connection} capturePermissions={capturePermissions} connecting={connecting} working={working} checking={checking} storageWarning={storageWarning} source={source} onSettings={openSettings} onConnect={() => void start()} onRetry={retryConnection} />
+
         </section>
-        <SavedVariables activeTab={activeTab} onTabChange={changeTab} accountId={accountId} tests={assignmentSummary?.accountId === accountId ? assignmentSummary.closedTests : []} />
-        <section id="panel-captures" role="tabpanel" aria-labelledby="tab-captures" hidden={activeTab !== 'captures'} tabIndex={0}>
-          {connected && capturePermissions && !pairing && !webConnecting ? <CaptureAssignments key={accountId} accountId={accountId} onSummary={onAssignmentSummary} activityVersion={activity?.version ?? 0} focusCaptureId={focusCaptureId} /> : <div className="empty-state"><span className="empty-icon"><Icon name="captures" /></span><h2>{connected ? 'Enable capture access' : 'Connect to get started'}</h2><p>{connected ? 'Approve capture permissions to see your test assignments and sync saved captures.' : 'Connect your rbgs.io account to see your test assignments and sync saved captures.'}</p><button className="button-primary" onClick={() => changeTab('account')}>Go to account<Icon name="arrow" /></button></div>}
+        <section id="panel-history" className="history-page" role="tabpanel" aria-labelledby="tab-history" hidden={activeTab !== 'history'} tabIndex={0}>
+          {!connecting && (!!source.view?.selectedSource || assignmentSummary?.accountId === accountId && assignmentSummary.closedTests.length > 0) ? <MatchHistory key={`history:${historyScope ?? accountId}`} accountId={accountId} sourceSelected={!!source.view?.selectedSource} tests={assignmentSummary?.accountId === accountId ? assignmentSummary.closedTests : []} history={history} onSettings={openSettings} onUploads={openUploads} /> : <div className="compact-empty"><h2>{connecting ? 'Connecting your account' : 'Set up your game data'}</h2><p>{connecting ? 'Your history will be available when the connection completes.' : 'Choose your WoW folder and account to load saved matches.'}</p><button onClick={() => openSettings(connecting ? 'account' : 'folder')}>Open settings<Icon name="arrow" /></button></div>}
+        </section>
+        <section id="panel-settings" role="tabpanel" aria-labelledby="tab-settings" hidden={activeTab !== 'settings'} tabIndex={0}>
+          {storageWarning && <p className="storage-warning" role="alert">{storageWarning}</p>}
+          <section className="settings-section" aria-labelledby="settings-account">
+            <div className="section-heading"><h2 id="settings-account" tabIndex={-1}>rbgs.io account</h2></div>
+            <div className="section-body">
+              {accountReady ? <><div className="settings-state is-complete"><Icon name="check" /><strong>Account connected</strong></div><p className="settings-value">Match uploads allowed</p></> : <div className="connection-notice"><span className="notice-icon"><Icon name="account" /></span><div><strong>{connecting ? 'Waiting for browser approval' : connected ? 'Allow match uploads' : copy.title}</strong><p>{connecting ? 'The companion will connect automatically after approval.' : connected ? 'Approve match access and uploads for this PC in your browser.' : copy.description}</p></div></div>}
+              {!connected && !connecting && <button className="button-primary" disabled={working || checking} onClick={connectionAction}>{checking ? 'Checking…' : copy.action}<Icon name={canPair ? 'arrow' : 'reload'} /></button>}
+              {connected && !connecting && !capturePermissions && <button className="button-primary" disabled={working} onClick={() => void start()}>Allow match uploads<Icon name="arrow" /></button>}
+              {connectionError && !connecting && <details className="diagnostics"><summary>Connection details</summary><p>{connectionError}</p></details>}
+              {message && <p className="status-message" role="status">{message}</p>}
+              {pairingError !== null && <Feedback title="Connection could not be completed" detail={pairingError}>{pairing ? 'Check the browser approval. If the request expired, start a new request below.' : 'Check your connection and try connecting again.'}</Feedback>}
+              {pairing && <section className="pairing-panel" aria-label="Pairing">
+                <button className="button-primary" disabled={busy} onClick={() => void invoke('open_pairing_browser').then(() => setMessage('')).catch(() => setMessage('The browser could not be opened. Try again or connect with the code below.'))}>Approve in browser<Icon name="arrow" /></button>
+                <details><summary>Connect with a code instead</summary><output className="pairing-code">{pairing.code}</output><p className="field-hint">Approve only the code shown in your own companion.</p></details>
+                <p className="field-hint">Expires at {new Date(pairing.expiresAt).toLocaleTimeString()}.</p>
+                <details><summary>Connection not completing?</summary><p>Check that you approved the request in your browser. If it expired, start again.</p><button disabled={busy} onClick={() => void start()}>Start new request</button></details>
+              </section>}
+            </div>
+          </section>
+          <section className="settings-section" aria-labelledby="settings-uploads">
+            <div className="section-heading"><h2 id="settings-uploads" tabIndex={-1}>Upload options</h2></div>
+            <div className="section-body"><div ref={setUploadSettingsTarget} />{(!accountId || !capturePermissions) && <p>Connect your account and allow match uploads to manage upload options.</p>}</div>
+          </section>
+          <SavedVariables source={source} />
+          <details className="settings-help background-help"><summary>Running in the background</summary><p>The companion keeps running when you close this window. To stop it, right-click its icon next to the Windows clock and choose <strong>Exit</strong>.</p></details>
         </section>
       </div>
-      <footer className="app-footer"><span>Windows companion</span><span className="footer-game">World of Warcraft: Forever</span><span className="brand">rbgs.io</span></footer>
     </main>
   </div>;
 }
 
-createRoot(document.getElementById('root')!).render(<StrictMode><App /></StrictMode>);
+const root = createRoot(document.getElementById('root')!);
+root.render(<StrictMode><App /></StrictMode>);
+if (import.meta.hot) import.meta.hot.dispose(() => root.unmount());

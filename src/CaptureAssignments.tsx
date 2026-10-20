@@ -1,9 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { invoke } from '@tauri-apps/api/core';
+import { createPortal } from 'react-dom';
 import { Icon } from './Navigation';
+import type { HistoryView } from './MatchHistory';
 import type { ClosedTest } from './testHistory';
-import { TestMatchProgress } from './TestMatchProgress';
 import { errorDetail, Feedback } from './Feedback';
+import { TestMatchProgress } from './TestMatchProgress';
 
 type Assignment = { captureId: string; assignmentId: string; character: { name: string; realm: string | null }; armUntil: string; codeIssued: boolean; cancelled: boolean; command: string | null };
 export type AssignmentSummary = { captureIds: string[]; error: boolean; closedTests: ClosedTest[] };
@@ -16,7 +18,7 @@ function timeRemaining(deadline: string, now: number) {
   return `${seconds} sec`;
 }
 
-export function CaptureAssignments({ accountId, enabled = true, onSummary, activityVersion = 0, focusCaptureId = null }: { accountId: string; enabled?: boolean; onSummary?: (summary: AssignmentSummary) => void; activityVersion?: number; focusCaptureId?: string | null }) {
+export function CaptureAssignments({ accountId, enabled, companionReady, history, onSummary, uploadSettingsTarget, activityVersion = 0, focusCaptureId = null }: { accountId: string; enabled: boolean; companionReady: boolean; history: HistoryView | null; onSummary: (summary: AssignmentSummary) => void; uploadSettingsTarget: HTMLElement | null; activityVersion?: number; focusCaptureId?: string | null }) {
   const [rows, setRows] = useState<Assignment[]>([]);
   const [loading, setLoading] = useState(true);
   const [issuingId, setIssuingId] = useState<string | null>(null);
@@ -48,8 +50,8 @@ export function CaptureAssignments({ accountId, enabled = true, onSummary, activ
   const allowed = useRef(enabled);
   allowed.current = enabled;
   const busy = issuing || sending;
-  const visibleRows = rows.filter(row => !row.cancelled && Date.parse(row.armUntil) > now);
-
+  const savedCaptureIds = new Set(history?.matches.map(match => match.captureId));
+  const visibleRows = rows.filter(row => !savedCaptureIds.has(row.captureId) && !row.cancelled && Date.parse(row.armUntil) > now);
 
   function changeAutoSync(value: boolean) {
     try { localStorage.setItem(preferenceKey, value ? 'on' : 'paused'); setUploadPreference({ enabled: value, error: null }); }
@@ -101,6 +103,9 @@ export function CaptureAssignments({ accountId, enabled = true, onSummary, activ
     lastFocused.current = focusCaptureId;
   }, [focusCaptureId, rows]);
   useEffect(() => {
+    if (loaded) onSummary({ captureIds: rows.filter(row => !row.cancelled && Date.parse(row.armUntil) > now).map(row => row.captureId), error: loadError !== null, closedTests: rows.filter(row => row.cancelled || Date.parse(row.armUntil) <= now).map(({ captureId, character, armUntil, cancelled }) => ({ captureId, character, armUntil, cancelled })) });
+  }, [rows, loaded, loadError, now, onSummary]);
+  useEffect(() => {
     if (!autoSync || !enabled) return;
     const timer = window.setInterval(() => void sync(), 15000);
     return () => window.clearInterval(timer);
@@ -110,10 +115,6 @@ export function CaptureAssignments({ accountId, enabled = true, onSummary, activ
     const timer = window.setTimeout(() => setCopied(null), 2500);
     return () => window.clearTimeout(timer);
   }, [copied]);
-
-  useEffect(() => {
-    if (loaded) onSummary?.({ captureIds: rows.filter(row => !row.cancelled && Date.parse(row.armUntil) > now).map(row => row.captureId), error: loadError !== null, closedTests: rows.filter(row => row.cancelled || Date.parse(row.armUntil) <= now).map(({ captureId, character, armUntil, cancelled }) => ({ captureId, character, armUntil, cancelled })) });
-  }, [rows, loaded, loadError, now, onSummary]);
 
   async function issue(row: Assignment) {
     if (!allowed.current || syncing.current || issuingRef.current) return;
@@ -150,31 +151,41 @@ export function CaptureAssignments({ accountId, enabled = true, onSummary, activ
     catch { document.getElementById(`command-${row.captureId}`)?.focus(); setCopyFallback(row.captureId); }
   }
 
+  const showTests = !loaded || visibleRows.length > 0 || loadError !== null;
+  const showReady = companionReady && enabled && loaded && !visibleRows.length && loadError === null && uploadError === null && autoSync && uploadPreference.error === null;
   const uploadFeedback = enabled && uploadError !== null && <Feedback title="Cannot check uploads" detail={uploadError} action={<button disabled={busy} onClick={() => void sync(true)}><Icon name="reload" />{sending ? 'Retrying…' : 'Retry uploads'}</button>}>{autoSync ? 'Saved data is still on this PC. Automatic uploads will retry.' : 'Saved data is still on this PC. Automatic uploads are paused.'}</Feedback>;
   const preferenceFeedback = uploadPreference.error !== null && <p className="status-message" role="alert">{uploadPreference.error === 'read' ? 'Cannot read your saved upload preference. Automatic uploads are paused until you choose to resume.' : 'Could not save your upload preference. It applies until you close the companion.'}</p>;
- return <section className="capture-assignments"><div className="section-toolbar"><div><h2>Test matches</h2><p>Assigned captures go to review. No rating is applied.</p></div><div className="button-group"><button disabled={busy || loading} onClick={()=>void load()}>Check for test matches</button><button className="button-primary" disabled={busy} onClick={()=>void sync(true)}>{sending ? 'Checking uploads…' : 'Check uploads now'}</button></div></div>
- <label className="capture-auto-sync"><span><strong>Automatic uploads</strong><span>Upload saved data for your assigned matches. This preference is remembered on this PC.</span></span><input type="checkbox" checked={autoSync} onChange={e=>changeAutoSync(e.target.checked)} aria-label="Automatically upload data for assigned matches" /></label>{syncMessage && <p className="status-message" role="status">{syncMessage}</p>}
-    {!autoSync && <div className="uploads-paused" role="status"><span>Automatic uploads paused{sending ? ' · Current check may finish' : ''}</span><button onClick={() => changeAutoSync(true)}>Resume uploads</button></div>}
-    {preferenceFeedback}
-    {uploadFeedback}
+
+  return <section className="capture-assignments" aria-labelledby={showTests ? 'assignments-heading' : undefined}>
+    {showReady && <section className="companion-ready" role="status" aria-labelledby="companion-ready-title"><Icon name="check" /><div><h2 id="companion-ready-title">Ready to play</h2><p>Find a match on rbgs.io.</p></div></section>}
+    {showTests && <div className="section-toolbar"><div className="section-title"><h2 id="assignments-heading">Test matches</h2>{visibleRows.length > 0 && <span>No rating changes</span>}</div><button className="button-link" disabled={!enabled || busy || loading} onClick={() => void load()}>Check for test matches</button></div>}
     {enabled && loadError !== null && <Feedback title="Cannot load test matches" detail={loadError} action={<button disabled={busy || loading} onClick={() => void load()}><Icon name="reload" />{loading ? 'Retrying…' : 'Retry tests'}</button>}>{visibleRows.length ? 'Showing the last loaded tests. Retrying automatically.' : 'Retrying automatically. You can also try again now.'}</Feedback>}
     {enabled && loading && !loaded && <p role="status">Loading your test matches…</p>}
- {visibleRows.map(row=><article className={`history-match${focusCaptureId === row.captureId ? ' is-selected' : ''}`} id={`assignment-${row.captureId}`} tabIndex={-1} key={row.captureId}><h3>{row.character.name} · Darkspear</h3><details className="assignment-deadline"><summary><strong className={Date.parse(row.armUntil) - now < 60000 ? 'text-warning' : undefined}>Expires in {timeRemaining(row.armUntil, now)}</strong></summary><p>Use by <time dateTime={row.armUntil}>{new Date(row.armUntil).toLocaleString()}</time></p></details>
- { !row.cancelled && Date.parse(row.armUntil) > Date.now() && <>
-   <TestMatchProgress step={row.codeIssued || row.command ? 2 : 1} />
-   <div className="test-next-step"><strong>{row.command ? 'Waiting for saved results' : row.codeIssued ? 'Check your command in WoW' : 'Get your match command'}</strong>
-     <p>{row.command ? 'Paste the command in WoW chat before entering the battleground. The companion receives results when you save them at the end; it cannot confirm when the command is used.' : row.codeIssued ? 'If you already used the command, save your results when the battleground ends.' : 'Then paste it in WoW chat before entering the battleground.'}</p>
-   </div>
- </>}
-
- <button disabled={busy||row.cancelled||Date.parse(row.armUntil)<=Date.now()||(row.codeIssued&&!row.command)} onClick={()=>void issue(row)}>{issuingId === row.captureId ? 'Getting command…' : row.command ? 'Show saved command' : 'Get match command'}</button>
-        {issueError?.captureId === row.captureId && !row.command && !(row.codeIssued && !row.command) && <Feedback title="Cannot get your command" detail={issueError.detail}>Try Get match command again. If a command was already issued, check the rbgs.io addon in WoW before requesting a new test.</Feedback>}
- {row.command&&!row.cancelled&&<><label htmlFor={`command-${row.captureId}`}>Match command to paste in WoW chat</label><div className="command-field">
+    {[...visibleRows].sort((a, b) => Number(a.cancelled || Date.parse(a.armUntil) <= now) - Number(b.cancelled || Date.parse(b.armUntil) <= now)).map(row => {
+      const expired = Date.parse(row.armUntil) <= now;
+      const unavailableCode = row.codeIssued && !row.command;
+      const savedData = history?.queue?.items.some(item => item.captureId === row.captureId && item.state !== 'CONFLICT') ?? false;
+      const disabledReason = row.cancelled ? 'This test match was cancelled.' : expired ? 'Time to use this command has run out. Request a new test match.' : unavailableCode ? 'The command is not available on this PC. If you already entered it in WoW, check the RBGS addon. Otherwise, request a new test match.' : null;
+      return <article className={`assignment-card ${focusCaptureId === row.captureId ? 'is-selected' : ''}`} id={`assignment-${row.captureId}`} tabIndex={-1} key={row.captureId}>
+        <div className="assignment-heading"><div><h3>{row.character.name}</h3><p>{row.character.realm ? `${row.character.realm} · ` : ''}Darkspear</p></div>{unavailableCode && !savedData && <span className="state-label state-warning">Command unavailable</span>}</div>
+        <TestMatchProgress step={row.codeIssued || row.command || savedData ? 2 : 1} />
+        <details className="assignment-deadline"><summary><strong className={Date.parse(row.armUntil) - now < 60000 ? 'text-warning' : undefined}>Expires in {timeRemaining(row.armUntil, now)}</strong></summary><p>Use by <time dateTime={row.armUntil}>{new Date(row.armUntil).toLocaleString()}</time></p></details>
+        <div className="test-next-step"><strong>{savedData || row.command ? 'Waiting for saved results' : unavailableCode ? 'Check your command in WoW' : 'Get your match command'}</strong>
+          <p>{savedData ? 'Saved addon data was found, but no final scoreboard yet. Save your results when the battleground ends.' : row.command ? 'Paste the command in WoW chat before entering the battleground. The companion receives results when you save them at the end; it cannot confirm when the command is used.' : unavailableCode ? 'If you already used the command, save your results when the battleground ends.' : 'Then paste it in WoW chat before entering the battleground.'}</p>
+        </div>
+        {disabledReason && !savedData && <p className="saved-data-note">{disabledReason}</p>}
+        {issueError?.captureId === row.captureId && !row.command && !unavailableCode && <Feedback title="Cannot get your command" detail={issueError.detail}>Try Get match command again. If a command was already issued, check the rbgs.io addon in WoW before requesting a new test.</Feedback>}
+        {row.command && !row.cancelled ? <details className="test-command" open={savedData ? undefined : true}><summary>{savedData ? 'View match command' : 'Match command'}</summary><label className="visually-hidden" htmlFor={`command-${row.captureId}`}>Match command to paste in WoW chat</label><div className="command-field">
           <input id={`command-${row.captureId}`} readOnly value="/rbgs match ••••••••••••••••••••" onFocus={event => event.target.select()} onCopy={event => { event.preventDefault(); if (!allowed.current || Date.parse(row.armUntil) <= Date.now()) return; event.clipboardData.setData('text/plain', row.command!); setCopied(row.captureId); setCopyFallback(null); }} />
-          <button className="button-primary command-copy" disabled={Date.parse(row.armUntil) <= Date.now()} onClick={() => void copy(row)}><Icon name={copied === row.captureId ? 'check' : 'copy'} />{copied === row.captureId ? 'Copied' : 'Copy command'}</button>
+          <button className="button-primary command-copy" disabled={!enabled || expired} onClick={() => void copy(row)}><Icon name={copied === row.captureId ? 'check' : 'copy'} />{copied === row.captureId ? 'Copied' : 'Copy command'}</button>
           <span className="visually-hidden" role="status">{copied === row.captureId ? 'Command copied.' : ''}</span>
- </div>{copyFallback === row.captureId && <p className="status-message" role="status">Press Ctrl+C to copy the selected command.</p>}</>}
- {row.codeIssued&&!row.command&&<p>The code was already issued elsewhere or its response was lost. Recover from the addon if armed; otherwise request a fresh assignment.</p>}
+        </div>{copyFallback === row.captureId && <p className="status-message" role="status">Press Ctrl+C to copy the selected command.</p>}</details> : !savedData && <button className="button-primary" disabled={!enabled || busy || loading || !!disabledReason} onClick={() => void issue(row)}>{issuingId === row.captureId ? 'Getting command…' : 'Get match command'}<Icon name="arrow" /></button>}
         <p className="saved-data-note">At the final scoreboard, click <strong>rbgs.io: Save results</strong> or use <code>/reload</code>. The companion will then upload the saved results{autoSync ? ' automatically' : ' when you resume uploads'}.</p>
- </article>)}</section>;
+      </article>;
+    })}
+    {!autoSync && <div className="uploads-paused" role="status"><span>Automatic uploads paused{sending ? ' · Current check may finish' : ''}</span><button className="button-link" onClick={() => changeAutoSync(true)}>Resume uploads</button></div>}
+    {uploadFeedback}
+    {preferenceFeedback}
+    {uploadSettingsTarget && createPortal(<div className="upload-settings-controls">{uploadFeedback}{preferenceFeedback}<label className="capture-auto-sync"><span><strong>Automatic uploads</strong><span>Upload saved data for your assigned matches. This preference is remembered on this PC.</span></span><input type="checkbox" checked={autoSync} onChange={event => changeAutoSync(event.target.checked)} aria-label="Automatically upload data for assigned matches" /></label><div className="button-group"><button disabled={!enabled || busy} onClick={() => void sync(true)}><Icon name="reload" />{sending ? 'Checking uploads…' : 'Check uploads now'}</button></div>{syncMessage && <p className="status-message" role="status">{syncMessage}</p>}</div>, uploadSettingsTarget)}
+  </section>;
 }

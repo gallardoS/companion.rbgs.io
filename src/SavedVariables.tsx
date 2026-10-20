@@ -147,7 +147,7 @@ export function SavedVariables({ activeTab, onTabChange, accountId, tests }: { a
     <p className="saved-data-note">File freshness and device connectivity do not establish current in-game participation, account ownership or a verified match.</p>
     </section>
     <section id="panel-history" role="tabpanel" aria-labelledby="tab-history" hidden={activeTab !== 'history'} tabIndex={0}>
-      {view?.selectedSource || tests.length > 0 ? <MatchHistory key={`${view?.installation}/${view?.selectedSource}/${accountId}`} tests={tests} accountId={accountId} sourceSelected={!!view?.selectedSource} /> : <div className="empty-state"><span className="empty-icon"><Icon name="history" /></span><h2>Choose your game account</h2><p>Select your Forever installation and saved-data account to load completed captures on this PC.</p><button className="button-primary" onClick={() => onTabChange('game')}>Set up game data<Icon name="arrow" /></button></div>}
+      {view?.selectedSource || tests.length > 0 ? <MatchHistory key={`${view?.installation}/${view?.selectedSource}/${accountId}`} tests={tests} accountId={accountId} sourceSelected={!!view?.selectedSource} onSettings={() => onTabChange('account')} onUploads={() => onTabChange('captures')} /> : <div className="empty-state"><span className="empty-icon"><Icon name="history" /></span><h2>Choose your game account</h2><p>Select your Forever installation and saved-data account to load completed captures on this PC.</p><button className="button-primary" onClick={() => onTabChange('game')}>Set up game data<Icon name="arrow" /></button></div>}
     </section>
   </>;
 }

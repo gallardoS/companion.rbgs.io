@@ -272,3 +272,20 @@ svg { flex-shrink: 0; }
 .history-undo { display: flex; align-items: center; justify-content: space-between; gap: .75rem; margin-top: .75rem; padding: .3rem .75rem; border-radius: .4rem; background: #ffffff05; color: var(--muted); font-size: .8125rem; }
 .closed-tests > summary, .local-inbox > summary { font-size: .8125rem; }
 .closed-tests > summary > span, .local-inbox > summary > span { color: var(--muted); font-size: .75rem; }
+
+.button-link { min-height: 36px; padding: .35rem 0 .35rem .5rem; border-color: transparent; background: transparent; color: var(--muted); }
+.button-link:hover:not(:disabled) { background: transparent; border-color: transparent; color: #f4f5ef; }
+.compact-empty { padding: 1rem 0; }
+.compact-empty p { margin-bottom: .5rem; }
+.compact-empty > :last-child { margin-bottom: 0; }
+.delivery-summary { display: flex; align-items: center; flex-wrap: wrap; gap: .6rem 1.25rem; margin: .75rem 0; color: var(--muted); font-size: .8125rem; }
+.delivery-summary strong { color: #dce2d9; font-weight: 600; }
+.delivery-summary > span:first-child strong { color: var(--success); }
+.delivery-summary > .muted { margin-left: auto; font-size: .75rem; }
+.local-inbox { margin: 1rem 0; padding: .85rem 1rem; border: 1px solid var(--line); border-radius: .6rem; background: var(--surface); }
+.local-inbox p, .local-inbox li { font-size: .8125rem; }
+.local-inbox ul { padding-left: 1.2rem; color: var(--muted); line-height: 1.7; }
+.local-inbox li + li { margin-top: .6rem; }
+.local-inbox { padding: .8rem 0; border: 0; border-top: 1px solid var(--line); border-radius: 0; background: transparent; }
+.local-inbox.has-issues > summary { color: var(--warning); }
+.section-count { display: inline-block; margin-left: .5rem; color: var(--muted); font-size: .8125rem; font-weight: 400; font-variant-numeric: tabular-nums; }

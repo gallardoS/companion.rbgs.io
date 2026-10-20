@@ -164,10 +164,10 @@ export function DeliveryBadge({ match, queue }: { match: Match; queue: Queue | n
   return <span className={`state-label state-${tone}`} title={state ? deliveryHelp[state] : undefined}>{state ? deliveryLabels[state] : 'Saved on this PC'}</span>;
 }
 
-export function MatchHistory({ tests, accountId, sourceSelected }: { tests: ClosedTest[]; accountId: string; sourceSelected: boolean }) {
+export function MatchHistory({ tests, accountId, sourceSelected, onSettings, onUploads }: { tests: ClosedTest[]; accountId: string; sourceSelected: boolean; onSettings: () => void; onUploads: () => void }) {
   const id = useId();
-  const [limit, setLimit] = useState(5);
   const { view, error, busy, refresh } = useMatchHistory(sourceSelected ? 'selected-source' : null);
+  const [limit, setLimit] = useState(5);
   const hiddenTests = useHiddenTests(accountId);
   const closedTestsRef = useRef<HTMLDetailsElement>(null);
   const undoRef = useRef<HTMLButtonElement>(null);
@@ -183,45 +183,41 @@ export function MatchHistory({ tests, accountId, sourceSelected }: { tests: Clos
   const matches = [...(view?.matches ?? [])].sort((a, b) => Date.parse(b.endedAt) - Date.parse(a.endedAt) || a.captureId.localeCompare(b.captureId));
   const closedTests = unrecordedTests.filter(test => !hiddenTests.hidden.has(test.captureId))
     .sort((a, b) => Date.parse(b.armUntil) - Date.parse(a.armUntil) || a.captureId.localeCompare(b.captureId));
+  const queue = view?.queue;
+  const uploadIssue = !!queue && (queue.status !== 'READY' || queue.conflicts > 0 || queue.waitingAssignment > 0 || queue.needsAuth > 0 || (queue.blocked ?? 0) > 0);
+  const uploadProblems = queue ? [
+    queue.status !== 'READY' ? 'Local match storage needs attention.' : null,
+    queue.conflicts > 0 ? 'Conflicting recordings are preserved but excluded from the history.' : null,
+    (queue.blocked ?? 0) > 0 ? 'Some uploads were not accepted by rbgs.io.' : null,
+    queue.waitingAssignment > 0 ? 'Some saved data has no matching test assignment.' : null,
+    queue.needsAuth > 0 ? 'Check your account connection and permissions in Settings.' : null,
+  ].filter(Boolean).join(' ') : '';
   return <section className="match-history" aria-labelledby={`${id}-heading`}>
-    <div className="section-toolbar"><div><h2 id={`${id}-heading`}>Completed matches</h2>
-    <p>Local observations. Matches remain unverified.</p></div>
-    <button disabled={busy || !sourceSelected} onClick={refresh}>Refresh match history</button></div>
-      {view?.queue && <div className="local-inbox">
-        <h3>Local capture queue</h3>
-        <p role={view.queue.status === 'READY' ? 'status' : 'alert'}>{view.queue.message}</p>
-        <dl className="queue-metrics"><div><dt>Saved revisions</dt><dd>{view.queue.snapshots}</dd></div><div><dt>Received by server</dt><dd>{view.queue.acknowledged ?? 0}</dd></div><div><dt>Pending delivery</dt><dd>{view.queue.pending ?? 0}</dd></div><div><dt>Blocked</dt><dd>{view.queue.blocked ?? 0}</dd></div></dl>
-        <p className="saved-data-note">{view.queue.waitingAssignment} waiting for assignment · {view.queue.needsAuth} waiting for account confirmation</p>
-        {view.queue.conflicts > 0 && <p role="alert">{view.queue.conflicts} conflicting captures preserved. They are excluded from completed history.</p>}
-        {view.queue.unboundSnapshots > 0 && <p>{view.queue.unboundSnapshots} earlier unbound snapshots are preserved separately for assignment recovery.</p>}
-        {view.queue.sourceStatus !== 'READY' && <p role="status">{view.queue.sourceMessage} Previously saved captures remain available.</p>}
-        {!!view.queue.items.length && <details><summary>Saved revisions</summary><ul>{view.queue.items.map((item, index) => <li key={index}>
-          <span className="local-path">{item.captureId}</span> · revision {item.revision} · {item.coverage.toLowerCase()} · {({WAITING_ASSIGNMENT:'Waiting for assignment',NEEDS_AUTH:'Waiting for account confirmation',CONFLICT:'Conflict',PENDING:'Pending delivery',SENDING:'Sending',ACKNOWLEDGED:'Received by server',BLOCKED:'Blocked'})[item.state as 'WAITING_ASSIGNMENT']}
-        </li>)}</ul></details>}
-      </div>}
+    <div className="section-toolbar"><div><h2 id={`${id}-heading`}>Recorded matches{matches.length > 0 && <span className="section-count">{matches.length}</span>}</h2>
+    <p>Uploaded means saved by rbgs.io. Results still await verification.</p></div>
+    <div className="button-group"><button className="button-link" onClick={onUploads}>Upload options<Icon name="arrow" /></button>{error && <button disabled={busy || !sourceSelected} onClick={refresh}><Icon name="reload" />Retry</button>}</div></div>
     {hiddenTests.error && <p className="status-message" role="alert">Could not save your hidden tests on this PC. Try again.</p>}
     {error && <Feedback title="Cannot refresh your matches" detail={error}>{view ? 'Showing the last loaded matches. Retrying automatically.' : 'Your matches could not be loaded. Retrying automatically.'}</Feedback>}
-    {!sourceSelected ? null : view?.status !== 'READY' ? <p role="status">{view?.message ?? 'Reading match history…'}</p> : <>
-      <p>{view.matches.length} completed locally · {view.retainedAttempts} / 8 attempts in the current game file</p>
-      {!view.matches.length && !view.queue?.conflicts && view.queue?.status !== 'STORAGE_UNAVAILABLE' && <p>No completed matches yet.</p>}
+    {uploadIssue && <Feedback title="Some saved data needs attention" action={queue!.needsAuth > 0 ? <button onClick={() => onSettings()}>Check account<Icon name="arrow" /></button> : undefined}>{uploadProblems} Your saved data is kept on this PC.</Feedback>}
+    {!error && sourceSelected && view?.status !== 'READY' && <p role="status">{view?.message ?? 'Loading saved matches…'}</p>}
+    {!matches.length && view?.status === 'READY' && !view.queue?.conflicts && view.queue?.status !== 'STORAGE_UNAVAILABLE' && <div className="compact-empty"><h3>No match history yet</h3><p>Your matches appear here after you save results in WoW.</p></div>}
       {matches.slice(0, limit).map(match => {
         const result = matchResult(match);
-        const state = deliveryState(match, view?.queue ?? null);
-        return <details className={`history-match${result ? ` is-${result}` : ''}`} key={match.captureId}>
+        const state = deliveryState(match, queue ?? null);
+        return <details className={`history-match${result ? ` is-${result}` : ''}`} key={`match-${match.captureId}`}>
         <summary><span className="match-identity"><strong>{match.map.observedName}</strong><span className="match-meta"><span>{character(match.character)}<span className={`match-outcome${result ? ` is-${result}` : ''}`}>{result === 'victory' ? 'Victory' : result === 'defeat' ? 'Defeat' : `${team(match.winner)} won`}</span></span><time dateTime={match.endedAt} title={stamp(match.endedAt)}>{shortStamp(match.endedAt)}</time></span></span><DeliveryBadge match={match} queue={view?.queue ?? null} /></summary>
         <TestMatchProgress step={3} uploaded={state === 'ACKNOWLEDGED'} />
         <div className="test-next-step"><strong>{state === 'ACKNOWLEDGED' ? 'Results uploaded' : state === 'SENDING' ? 'Uploading saved results' : state ? deliveryLabels[state] : 'Final results saved on this PC'}</strong><p>{state === 'ACKNOWLEDGED' ? 'rbgs.io has received this saved version. Uploading does not verify the result.' : state && deliveryHelp[state] ? deliveryHelp[state] : 'Check Upload options to upload results for an assigned test.'}</p></div>
-        <dl className="saved-data-summary">
-          <div><dt>Observed character</dt><dd>{character(match.character)}</dd></div>
-          <div><dt>Observed entry</dt><dd>{stamp(match.startedAt)}</dd></div>
-          <div><dt>Capture ID / revision / build</dt><dd>{match.captureId} / {match.revision} / {match.build}</dd></div>
-        </dl>
+        <p className="saved-data-note">{match.roster.length} {match.roster.length === 1 ? 'player' : 'players'} in the saved scoreboard.</p>
         <Scoreboard match={match} />
+        <details className="diagnostics"><summary>Technical details</summary><dl className="saved-data-summary">
+          <div><dt>Saved start time</dt><dd>{stamp(match.startedAt)}</dd></div>
+          <div><dt>Match data ID / version / game build</dt><dd>{match.captureId} / {match.revision} / {match.build}</dd></div>
+        </dl></details>
       </details>;
       })}
     {matches.length > limit && <button className="button-link history-pagination" onClick={() => setLimit(current => current + 5)}>Show older ({matches.length - limit})</button>}
     {limit > 5 && <button className="button-link history-pagination" onClick={() => setLimit(5)}>Show fewer</button>}
-    </>}
     {hiddenTests.lastHidden && <div className="history-undo"><span role="status">Test hidden on this PC.</span><button ref={undoRef} className="button-link" onClick={hiddenTests.undo}>Undo hide</button></div>}
     {(closedTests.length > 0 || hiddenCount > 0) && <details className="closed-tests" ref={closedTestsRef}><summary>Closed tests <span>({closedTests.length})</span></summary>
       {closedTests.map(test => <article className="history-test" key={test.captureId}>
@@ -230,6 +226,17 @@ export function MatchHistory({ tests, accountId, sourceSelected }: { tests: Clos
         <button className="history-test-hide" title="Hide test on this PC" aria-label={`Hide ${test.cancelled ? 'cancelled' : 'expired'} test for ${test.character.name}`} onClick={() => hiddenTests.hide(test.captureId)}><Icon name="close" /></button>
       </article>)}
       {hiddenCount > 0 && <button className="button-link hidden-tests-action" onClick={hiddenTests.showAll}>Show hidden tests ({hiddenCount})</button>}
+    </details>}
+    {view?.queue && <details className={`local-inbox${uploadIssue ? ' has-issues' : ''}`}><summary>{uploadIssue ? 'Upload issues' : 'Upload details'}<span> · {view.queue.snapshots} saved versions</span></summary>
+    {view?.queue && <div className="delivery-summary" aria-label="Upload totals for saved versions, including updates to the same match">
+      <span><strong>{view.queue.acknowledged ?? '—'}</strong> uploaded</span><span><strong>{view.queue.pending ?? '—'}</strong> waiting</span><span><strong>{view.queue.blocked ?? '—'}</strong> blocked</span><span className="muted">Saved versions, including updates to the same match</span>
+    </div>}
+      <p>{view.queue.message}</p>
+      <p className="saved-data-note">{view.queue.waitingAssignment} without a match assignment · {view.queue.needsAuth} need an account check</p>
+      {view.queue.unboundSnapshots > 0 && <p>{view.queue.unboundSnapshots} older saved versions are kept separately because their WoW folder and account are unknown.</p>}
+      {view.queue.sourceStatus !== 'READY' && <p role="status">{view.queue.sourceMessage} Previously saved matches are still available.</p>}
+      <p>{view.matches.length} completed matches saved on this PC · {view.retainedAttempts} / 8 attempts in the current game file</p>
+      {!!view.queue.items.length && <ul>{view.queue.items.map(item => <li key={`${item.captureId}/${item.revision}`}><span className="local-path">{item.captureId}</span> · version {item.revision} · {item.coverage.toLowerCase()} · {deliveryLabels[item.state]}</li>)}</ul>}
     </details>}
   </section>;
 }

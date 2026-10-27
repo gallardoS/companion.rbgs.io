@@ -945,6 +945,18 @@ mod tests {
         );
     }
     #[test]
+    fn flag_statistics_are_transported_without_backfilling_old_rows() {
+        let mut snapshot = fixture();
+        snapshot["capture"]["roster"][0]["flagsCaptured"] = json!(0);
+        snapshot["capture"]["roster"][0]["flagsReturned"] = json!(2);
+        let bytes = body(&snapshot, &assignment(&snapshot)).unwrap();
+        let wire: Value = serde_json::from_slice(&bytes).unwrap();
+        assert_eq!(wire["capture"]["roster"][0]["flagsCaptured"], 0);
+        assert_eq!(wire["capture"]["roster"][0]["flagsReturned"], 2);
+        assert!(wire["capture"]["roster"][1].get("flagsCaptured").is_none());
+        assert!(wire["capture"]["roster"][1].get("flagsReturned").is_none());
+    }
+    #[test]
     fn frozen_request_survives_restart_and_rejects_damage() {
         let (_dir, path, item) = database();
         reserve(&path, ACCOUNT, &item).unwrap();

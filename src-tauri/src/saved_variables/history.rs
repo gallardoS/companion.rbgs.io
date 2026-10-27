@@ -52,6 +52,8 @@ pub struct Row {
     deaths: Option<u64>,
     damage: Option<u64>,
     healing: Option<u64>,
+    flags_captured: Option<u64>,
+    flags_returned: Option<u64>,
 }
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
@@ -270,6 +272,8 @@ fn valid(record: &Record) -> bool {
                 row.deaths,
                 row.damage,
                 row.healing,
+                row.flags_captured,
+                row.flags_returned,
             ]
             .iter()
             .flatten()
@@ -732,7 +736,7 @@ mod tests {
                     .collect::<Vec<_>>()
                     .join(",")
             ),
-            _ => panic!("not a product fixture value"),
+            Json::Bool(value) => value.to_string(),
         }
     }
     fn bytes(value: &Json) -> Vec<u8> {
@@ -829,6 +833,37 @@ mod tests {
         assert!(!ui.contains("0123456789ABCDEF"));
         assert!(!ui.contains("fixture-player-guid"));
         assert!(!ui.contains("assignmentCode"));
+    }
+    #[test]
+    fn flag_statistics_survive_parsing_projection_and_legacy_absence() {
+        let mut value = fixture();
+        value["captures"][0]["capture"]["roster"][0]["flagsCaptured"] = json!(0);
+        value["captures"][0]["capture"]["roster"][0]["flagsReturned"] = json!(3);
+        let records = snapshots(&bytes(&value)).unwrap();
+        assert_eq!(records[0]["capture"]["roster"][0]["flagsCaptured"], 0);
+        assert!(
+            records[0]["capture"]["roster"][1]
+                .get("flagsCaptured")
+                .is_none()
+        );
+        let view = parse_history(&bytes(&value)).unwrap();
+        assert_eq!(view.matches[0].roster[0].flags_captured, Some(0));
+        assert_eq!(view.matches[0].roster[0].flags_returned, Some(3));
+        assert_eq!(view.matches[0].roster[1].flags_captured, None);
+        for key in ["flagsCaptured", "flagsReturned"] {
+            for bad in [
+                json!(-1),
+                json!(9007199254740992u64),
+                json!("3"),
+                json!(1.5),
+                json!(true),
+            ] {
+                value["captures"][0]["capture"]["roster"][0][key] = bad;
+                assert!(snapshots(&bytes(&value)).is_err());
+            }
+            value["captures"][0]["capture"]["roster"][0][key] = json!(null);
+            assert!(snapshots(&bytes(&value)).is_ok());
+        }
     }
     #[test]
     fn filters_pending_and_incomplete_orders_completed_and_deduplicates_ids() {

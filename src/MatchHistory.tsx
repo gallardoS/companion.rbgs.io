@@ -6,7 +6,7 @@ import { errorDetail, Feedback } from './Feedback';
 import { TestMatchProgress } from './TestMatchProgress';
 
 type Identity = { name: string; realm: string | null; guid: null };
-type Row = { character: Identity; observedTeamKey: string | null; killingBlows: number | null; honorableKills: number | null; deaths: number | null; damage: number | null; healing: number | null };
+type Row = { character: Identity; observedTeamKey: string | null; killingBlows: number | null; honorableKills: number | null; deaths: number | null; damage: number | null; healing: number | null; flagsCaptured?: number | null; flagsReturned?: number | null };
 type Match = { captureId: string; revision: number; character: Identity; map: { profile: string; observedName: string; gameMapId: number | null }; startedAt: string; endedAt: string; winner: string; roster: Row[]; build: string; reloadInterruptions?: number };
 type QueueItem = { captureId: string; revision: number; state: string; coverage: string; savedAt: number };
 type Queue = { status: string; message: string; snapshots: number; captures: number; conflicts: number; waitingAssignment: number; needsAuth: number; acknowledged?: number; pending?: number; blocked?: number; bytes: number; items: QueueItem[]; sourceStatus: string; sourceMessage: string; unboundSnapshots: number };
@@ -40,7 +40,8 @@ function valid(value: unknown): value is HistoryView {
       && (m.reloadInterruptions === undefined || typeof m.reloadInterruptions === 'number' && Number.isInteger(m.reloadInterruptions) && m.reloadInterruptions >= 0 && m.reloadInterruptions <= 32)
       && ['0', '1'].includes(m.winner) && typeof m.build === 'string' && /^[0-9]{1,10}$/.test(m.build) && /[1-9]/.test(m.build) && Array.isArray(m.roster) && m.roster.length >= 1 && m.roster.length <= 40
       && m.roster.every(row => row && identity(row.character) && [null, '0', '1'].includes(row.observedTeamKey)
-        && [row.killingBlows, row.honorableKills, row.deaths, row.damage, row.healing].every(number)));
+        && [row.killingBlows, row.honorableKills, row.deaths, row.damage, row.healing].every(number)
+          && [row.flagsCaptured, row.flagsReturned].every(v => v === undefined || number(v))));
 }
 function stamp(value: string) { return new Date(value).toLocaleString(); }
 function shortStamp(value: string) {
@@ -72,6 +73,8 @@ const scoreboardColumns = [
   { key: 'deaths', label: 'Deaths', numeric: true },
   { key: 'damage', label: 'Damage', numeric: true },
   { key: 'healing', label: 'Healing', numeric: true },
+  { key: 'flagsCaptured', label: 'FC', description: 'Flags captured', numeric: true },
+  { key: 'flagsReturned', label: 'FR', description: 'Flags returned', numeric: true },
 ] as const;
 type ScoreboardColumn = typeof scoreboardColumns[number]['key'];
 const scoreboardNames = new Intl.Collator('en', { sensitivity: 'base', numeric: true });
@@ -79,13 +82,15 @@ const scoreboardNames = new Intl.Collator('en', { sensitivity: 'base', numeric: 
 function Scoreboard({ match }: { match: Match }) {
   const captionId = useId();
   const [sort, setSort] = useState<{ key: ScoreboardColumn; descending: boolean } | null>(null);
+  const showFlags = match.map.gameMapId === 489 || match.roster.some(row => row.flagsCaptured != null || row.flagsReturned != null);
+  const columns = scoreboardColumns.filter(column => showFlags || !['flagsCaptured', 'flagsReturned'].includes(column.key));
   const rows = match.roster.map((row, index) => ({ row, index }));
   if (sort) {
     const value = (row: Row) => sort.key === 'character' ? character(row.character)
       : sort.key === 'team' ? row.observedTeamKey === null ? null : team(row.observedTeamKey) : row[sort.key];
     rows.sort((a, b) => {
       const left = value(a.row), right = value(b.row);
-      if (left === null || right === null) return left === right ? a.index - b.index : left === null ? 1 : -1;
+      if (left == null || right == null) return left == right ? a.index - b.index : left == null ? 1 : -1;
       const order = typeof left === 'number' && typeof right === 'number' ? left - right : scoreboardNames.compare(String(left), String(right));
       return (sort.descending ? -order : order) || a.index - b.index;
     });
@@ -93,7 +98,7 @@ function Scoreboard({ match }: { match: Match }) {
   const activeColumn = scoreboardColumns.find(column => column.key === sort?.key);
   return <div className="scoreboard"><p className="scoreboard-caption" id={captionId}>Saved final scoreboard</p><div className="scoreboard-scroll" role="region" aria-label={`Scoreboard for ${match.map.observedName}`} tabIndex={0}>
     <p className="visually-hidden" role="status">{sort && activeColumn ? `Sorted by ${activeColumn.label}, ${sort.descending ? 'descending' : 'ascending'}.` : ''}</p>
-    <table aria-labelledby={captionId}><thead><tr>{scoreboardColumns.map(column => {
+    <table aria-labelledby={captionId}><thead><tr>{columns.map(column => {
       const active = sort?.key === column.key;
       const descending = active ? !sort.descending : column.numeric;
       const description = 'description' in column ? column.description : column.label;
@@ -102,7 +107,7 @@ function Scoreboard({ match }: { match: Match }) {
       </th>;
     })}</tr></thead>
       <tbody>{rows.map(({ row, index }) => <tr key={index}><th scope="row"><span className="scoreboard-name">{row.character.name}</span>{row.character.realm && <span className="scoreboard-realm">{row.character.realm}</span>}</th><td className={row.observedTeamKey === '0' ? 'team-horde' : row.observedTeamKey === '1' ? 'team-alliance' : undefined}>{team(row.observedTeamKey)}</td>
-        {[row.killingBlows, row.honorableKills, row.deaths, row.damage, row.healing].map((value, column) => <td key={column}>{value === null ? 'Unknown' : value.toLocaleString()}</td>)}
+        {columns.filter(column => column.numeric).map(column => { const value = row[column.key as Exclude<ScoreboardColumn, 'character' | 'team'>]; return <td key={column.key}>{value == null ? 'Unknown' : value.toLocaleString()}</td>; })}
       </tr>)}</tbody></table>
   </div></div>;
 }

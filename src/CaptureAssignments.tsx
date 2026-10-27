@@ -7,9 +7,9 @@ import type { ClosedTest } from './testHistory';
 import { errorDetail, Feedback } from './Feedback';
 import { TestMatchProgress } from './TestMatchProgress';
 
-type Assignment = { captureId: string; assignmentId: string; character: { name: string; realm: string | null }; armUntil: string; codeIssued: boolean; cancelled: boolean; command: string | null };
+type Assignment = { captureId: string; assignmentId: string; expectedMapProfile?: string; character: { name: string; realm: string | null }; armUntil: string; codeIssued: boolean; cancelled: boolean; command: string | null };
 export type AssignmentSummary = { captureIds: string[]; error: boolean; closedTests: ClosedTest[] };
-const commandPattern = /^\/rbgs match RB2:[0-9a-f-]{36}:[0-9A-HJKMNP-TV-Z]{16}$/i;
+const commandPattern = /^\/rbgs (?:match|test-wsg) RB2:[0-9a-f-]{36}:[0-9A-HJKMNP-TV-Z]{16}$/i;
 function timeRemaining(deadline: string, now: number) {
   const seconds = Math.max(0, Math.ceil((Date.parse(deadline) - now) / 1000));
   if (seconds >= 86400) return `${Math.floor(seconds / 86400)}d ${Math.floor(seconds % 86400 / 3600)}h`;
@@ -103,7 +103,7 @@ export function CaptureAssignments({ accountId, enabled, companionReady, history
     lastFocused.current = focusCaptureId;
   }, [focusCaptureId, rows]);
   useEffect(() => {
-    if (loaded) onSummary({ captureIds: rows.filter(row => !row.cancelled && Date.parse(row.armUntil) > now).map(row => row.captureId), error: loadError !== null, closedTests: rows.filter(row => row.cancelled || Date.parse(row.armUntil) <= now).map(({ captureId, character, armUntil, cancelled }) => ({ captureId, character, armUntil, cancelled })) });
+    if (loaded) onSummary({ captureIds: rows.filter(row => !row.cancelled && Date.parse(row.armUntil) > now).map(({ captureId }) => captureId), error: loadError !== null, closedTests: rows.filter(row => row.cancelled || Date.parse(row.armUntil) <= now).map(({ captureId, character, armUntil, cancelled, expectedMapProfile }) => ({ captureId, character, armUntil, cancelled, expectedMapProfile })) });
   }, [rows, loaded, loadError, now, onSummary]);
   useEffect(() => {
     if (!autoSync || !enabled) return;
@@ -167,7 +167,7 @@ export function CaptureAssignments({ accountId, enabled, companionReady, history
       const savedData = history?.queue?.items.some(item => item.captureId === row.captureId && item.state !== 'CONFLICT') ?? false;
       const disabledReason = row.cancelled ? 'This test match was cancelled.' : expired ? 'Time to use this command has run out. Request a new test match.' : unavailableCode ? 'The command is not available on this PC. If you already entered it in WoW, check the RBGS addon. Otherwise, request a new test match.' : null;
       return <article className={`assignment-card ${focusCaptureId === row.captureId ? 'is-selected' : ''}`} id={`assignment-${row.captureId}`} tabIndex={-1} key={row.captureId}>
-        <div className="assignment-heading"><div><h3>{row.character.name}</h3><p>{row.character.realm ? `${row.character.realm} · ` : ''}Darkspear</p></div>{unavailableCode && !savedData && <span className="state-label state-warning">Command unavailable</span>}</div>
+        <div className="assignment-heading"><div><h3>{row.character.name}</h3><p>{row.character.realm ? `${row.character.realm} · ` : ''}{row.expectedMapProfile === 'TBC_ANNIVERSARY_WSG_TEST' ? 'TBC Anniversary / WSG · Temporary test' : 'Darkspear'}</p></div>{unavailableCode && !savedData && <span className="state-label state-warning">Command unavailable</span>}</div>
         <TestMatchProgress step={row.codeIssued || row.command || savedData ? 2 : 1} />
         <details className="assignment-deadline"><summary><strong className={Date.parse(row.armUntil) - now < 60000 ? 'text-warning' : undefined}>Expires in {timeRemaining(row.armUntil, now)}</strong></summary><p>Use by <time dateTime={row.armUntil}>{new Date(row.armUntil).toLocaleString()}</time></p></details>
         <div className="test-next-step"><strong>{savedData || row.command ? 'Waiting for saved results' : unavailableCode ? 'Check your command in WoW' : 'Get your match command'}</strong>

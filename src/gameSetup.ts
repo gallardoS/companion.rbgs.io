@@ -23,7 +23,7 @@ export function gameSetup(source: ReturnType<typeof useSavedVariables>) {
     target = 'folder';
   } else if (!folderReady) {
     title = 'Choose your WoW folder';
-    description = game?.status === 'WRONG_CLIENT' ? 'Select the _classic_beta_ folder from your Forever beta installation.' : 'Select your Forever beta installation to get started.';
+    description = 'Select your Forever installation, or select _anniversary_ explicitly for temporary WSG tests. rbgs.io is for Forever only.';
     target = 'folder';
   } else if (needsSourceSelection) {
     if (!view.sources.length) {

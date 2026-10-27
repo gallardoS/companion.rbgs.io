@@ -56,6 +56,7 @@ impl Session {
             .request(method, format!("{}{path}", self.endpoint))
             .bearer_auth(&self.token)
             .header("X-RBGS-Capture-Test-Kinds", "CAPTURE_ONLY")
+            .header("X-RBGS-Capture-Test-Profile", "TBC_ANNIVERSARY_WSG_TEST")
             .header("Accept", "application/json");
         if let Some(body) = body {
             request = request
@@ -150,7 +151,8 @@ fn descriptor(value: &Value, capture: &str) -> Result<(), String> {
     }) && kind_valid
         && value["schemaVersion"] == 2
         && value["mode"] == "CONTROLLED_TEST"
-        && value["expectedMapProfile"] == "DARKSPEAR_DIAGNOSTIC"
+        && (value["expectedMapProfile"] == "DARKSPEAR_DIAGNOSTIC"
+            || capture_only && value["expectedMapProfile"] == "TBC_ANNIVERSARY_WSG_TEST")
         && [
             "matchId",
             "assignmentId",
@@ -201,6 +203,13 @@ fn body(snapshot: &Value, assignment: &Value) -> Result<Vec<u8>, String> {
         assignment,
         snapshot["captureId"].as_str().ok_or("Invalid capture ID")?,
     )?;
+    let anniversary = assignment["expectedMapProfile"] == "TBC_ANNIVERSARY_WSG_TEST";
+    if (snapshot["client"]["product"] == "wow_anniversary") != anniversary
+        || !snapshot["capture"]["map"].is_null()
+            && snapshot["capture"]["map"]["profile"] != assignment["expectedMapProfile"]
+    {
+        return Err("The saved client or map profile does not match this test.".into());
+    }
     if assignment["assignmentCodeSha256"].as_str()
         != Some(
             digest(
@@ -317,6 +326,28 @@ fn save_issue(path: &Path, pending: &PendingIssue) -> Result<(), String> {
 pub async fn list_capture_assignments(app: tauri::AppHandle) -> Result<Value, String> {
     crate::assignments::refresh_list(&app).await
 }
+fn match_command(capture: &str, code: &str, assignment: &Value) -> String {
+    let action = if assignment["expectedMapProfile"] == "TBC_ANNIVERSARY_WSG_TEST" {
+        "test-wsg"
+    } else {
+        "match"
+    };
+    format!("/rbgs {action} RB2:{capture}:{code}")
+}
+fn saved_command(db: &Inbox, account: &str, capture: &str) -> Result<Option<String>, String> {
+    let saved: Option<(String, Vec<u8>)> = db.db.query_row(
+        "SELECT code,descriptor FROM capture_issuances WHERE origin=? AND account_id=? AND capture_id=?",
+        params![crate::pairing::origin(), account, capture], |r| Ok((r.get(0)?, r.get(1)?)))
+        .optional().map_err(|_| "Cannot read your saved match commands")?;
+    saved
+        .map(|(code, bytes)| {
+            let value: Value =
+                serde_json::from_slice(&bytes).map_err(|_| "Cannot read the saved assignment")?;
+            descriptor(&value, capture)?;
+            Ok(match_command(capture, &code, &value))
+        })
+        .transpose()
+}
 pub(crate) async fn fetch_assignments(
     app: &tauri::AppHandle,
 ) -> Result<(String, String, Value), String> {
@@ -338,12 +369,9 @@ pub(crate) async fn fetch_assignments(
             .as_str()
             .filter(|v| history::uuid(v))
             .ok_or("Invalid assignment ID")?;
-        let command:Option<String>=db.db.query_row("SELECT code FROM capture_issuances WHERE origin=? AND account_id=? AND capture_id=?",
-            params![crate::pairing::origin(),session.account,capture],|r|r.get(0)).optional().map_err(|_| "Cannot read your saved match commands")?;
+        let command = saved_command(&db, &session.account, capture)?;
         let mut view = row.clone();
-        view["command"] = command
-            .map(|code| Value::from(format!("/rbgs match RB2:{capture}:{code}")))
-            .unwrap_or(Value::Null);
+        view["command"] = command.map(Value::from).unwrap_or(Value::Null);
         if let Some(character) = view["character"].as_object_mut() {
             character.remove("guid");
         }
@@ -369,9 +397,8 @@ pub async fn issue_capture_assignment(
         }
     } else {
         let db = local(Inbox::open(&path))?;
-        let old:Option<String>=db.db.query_row("SELECT code FROM capture_issuances WHERE origin=? AND account_id=? AND capture_id=?",params![crate::pairing::origin(),session.account,capture_id],|r|r.get(0)).optional().map_err(|_| "Cannot read your saved match commands")?;
-        if let Some(code) = old {
-            return Ok(format!("/rbgs match RB2:{capture_id}:{code}"));
+        if let Some(command) = saved_command(&db, &session.account, &capture_id)? {
+            return Ok(command);
         }
         local(db.reserve_space(32768))?;
         let count: u32 = db
@@ -413,7 +440,9 @@ pub async fn issue_capture_assignment(
     }
     let pending = slot.as_ref().unwrap();
     save_issue(&path, pending)?;
-    let command = format!("/rbgs match RB2:{}:{}", pending.capture, pending.code);
+    let assignment: Value =
+        serde_json::from_slice(&pending.descriptor).map_err(|_| "Invalid saved assignment")?;
+    let command = match_command(&pending.capture, &pending.code, &assignment);
     *slot = None;
     Ok(command)
 }
@@ -765,6 +794,40 @@ mod tests {
         assert!(body(&snapshot, &descriptor).is_err());
         descriptor.as_object_mut().unwrap().remove("testKind");
         assert!(body(&snapshot, &descriptor).is_err()); // Single-row shape needs explicit purpose.
+    }
+    #[test]
+    fn anniversary_command_and_profile_survive_saved_issuance_restart() {
+        let mut snapshot = fixture();
+        let mut value = assignment(&snapshot);
+        value["testKind"] = json!("CAPTURE_ONLY");
+        value["assignedTeamKey"] = Value::Null;
+        value["expectedRoster"] = json!([{"characterId":ACCOUNT,"assignedTeamKey":null}]);
+        value["expectedMapProfile"] = json!("TBC_ANNIVERSARY_WSG_TEST");
+        assert!(body(&snapshot, &value).is_err());
+        snapshot["client"]["product"] = json!("wow_anniversary");
+        snapshot["capture"]["map"]["profile"] = json!("TBC_ANNIVERSARY_WSG_TEST");
+        assert!(body(&snapshot, &value).is_ok());
+        let capture = snapshot["captureId"].as_str().unwrap();
+        let code = snapshot["assignmentCode"].as_str().unwrap();
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("inbox.sqlite3");
+        save_issue(
+            &path,
+            &PendingIssue {
+                account: ACCOUNT.into(),
+                capture: capture.into(),
+                code: code.into(),
+                descriptor: canonical(&value).unwrap(),
+            },
+        )
+        .unwrap();
+        let db = Inbox::open(&path).unwrap();
+        assert_eq!(
+            saved_command(&db, ACCOUNT, capture).unwrap().unwrap(),
+            format!("/rbgs test-wsg RB2:{capture}:{code}")
+        );
+        value.as_object_mut().unwrap().remove("testKind");
+        assert!(descriptor(&value, capture).is_err());
     }
     fn accepted(snapshot: &Value, bytes: &[u8]) -> Value {
         json!({"schemaVersion":2,"evidenceId":ACCOUNT,"assignmentId":ASSIGNMENT,"captureId":snapshot["captureId"],

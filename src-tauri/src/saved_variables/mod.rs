@@ -43,10 +43,10 @@ impl Status {
     fn message(self) -> &'static str {
         match self {
             Self::NotConfigured => {
-                "Choose your Forever beta folder or the World of Warcraft folder that contains it."
+                "Choose your Forever folder, or select _anniversary_ explicitly for temporary WSG tests."
             }
             Self::WrongClient => {
-                "We could not find Forever beta here. Choose the folder where it is installed."
+                "Choose a Forever installation, or the _anniversary_ client folder for temporary WSG tests."
             }
             Self::MissingAddon => {
                 "Install RBGSCompatibility, enable it in WoW, then use /reload or log out."
@@ -57,7 +57,7 @@ impl Status {
             Self::NoSavedData => {
                 "No game data saved yet. Enable RBGSCompatibility, log into a character, then use /reload or log out."
             }
-            Self::SelectSource => "Choose the WoW account you use to play Forever.",
+            Self::SelectSource => "Choose the WoW account for the selected installation.",
             Self::SourceUnavailable => {
                 "We cannot read this account's saved data. Check your WoW folder and account, then try again."
             }
@@ -245,10 +245,24 @@ fn validate_installation(chosen: &Path) -> Result<PathBuf, Status> {
         .trim_start_matches('\u{feff}')
         .trim();
     let lines: Vec<_> = flavor.lines().map(str::trim).collect();
-    if lines != ["wow_classic_beta"] && lines != ["Product Flavor!STRING:0", "wow_classic_beta"] {
+    let anniversary =
+        lines == ["wow_anniversary"] || lines == ["Product Flavor!STRING:0", "wow_anniversary"];
+    if !anniversary
+        && lines != ["wow_classic_beta"]
+        && lines != ["Product Flavor!STRING:0", "wow_classic_beta"]
+    {
         return Err(Status::WrongClient);
     }
-    child(&root, Path::new("WowB.exe"), false).map_err(|_| Status::WrongClient)?;
+    child(
+        &root,
+        Path::new(if anniversary {
+            "WowClassic.exe"
+        } else {
+            "WowB.exe"
+        }),
+        false,
+    )
+    .map_err(|_| Status::WrongClient)?;
     Ok(root)
 }
 
@@ -833,6 +847,23 @@ mod tests {
         )
         .unwrap();
         temp
+    }
+    #[test]
+    fn explicit_anniversary_installation_requires_its_own_flavor_and_executable() {
+        let temp = tempfile::tempdir().unwrap();
+        fs::write(
+            temp.path().join(".flavor.info"),
+            "Product Flavor!STRING:0\nwow_anniversary\n",
+        )
+        .unwrap();
+        assert_eq!(validate_installation(temp.path()), Err(Status::WrongClient));
+        fs::write(temp.path().join("WowClassic.exe"), []).unwrap();
+        assert_eq!(
+            validate_installation(temp.path()).unwrap(),
+            fs::canonicalize(temp.path()).unwrap()
+        );
+        fs::write(temp.path().join(".flavor.info"), "wow_classic\n").unwrap();
+        assert_eq!(validate_installation(temp.path()), Err(Status::WrongClient));
     }
     fn source(root: &Path, account: &str, content: &[u8]) -> PathBuf {
         let path = root

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 
-export type ClosedTest = { captureId: string; character: { name: string; realm: string | null }; armUntil: string; cancelled: boolean };
+export type ClosedTest = { captureId: string; expectedMapProfile?: string; character: { name: string; realm: string | null }; armUntil: string; cancelled: boolean };
 
 const hiddenTestsKey = (accountId: string) => `rbgs.hidden-tests.v1.${accountId}`;
 function readHiddenTests(accountId: string): Set<string> {

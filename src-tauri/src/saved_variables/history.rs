@@ -179,14 +179,23 @@ pub(super) fn timestamp(value: &str) -> bool {
 fn valid(record: &Record) -> bool {
     let c = &record.capture;
     let client = &record.client;
-    let supported = client.product == "wow_classic_beta"
+    let anniversary = client.product == "wow_anniversary"
+        && client.adapter_version == "tbc-anniversary-wsg-test-v1";
+    let profile = if anniversary {
+        "TBC_ANNIVERSARY_WSG_TEST"
+    } else {
+        "DARKSPEAR_DIAGNOSTIC"
+    };
+    let map_id = if anniversary { 489 } else { 2997 };
+    let supported = (anniversary
+        || client.product == "wow_classic_beta"
+            && ["darkspear-scoreboard-v1", "darkspear-70338-test-1"]
+                .contains(&client.adapter_version.as_str()))
         && parser::valid_game_version(&client.game_version)
         && parser::valid_game_build(&client.game_build)
         && client.interface > 0
         && client.interface <= 9007199254740991
-        && text(&client.addon_version)
-        && ["darkspear-scoreboard-v1", "darkspear-70338-test-1"]
-            .contains(&client.adapter_version.as_str());
+        && text(&client.addon_version);
     if !supported
         || !uuid(&record.capture_id)
         || !(1..=2147483647).contains(&record.capture_revision)
@@ -207,7 +216,7 @@ fn valid(record: &Record) -> bool {
         return false;
     }
     if c.map.as_ref().is_some_and(|m| {
-        m.profile != "DARKSPEAR_DIAGNOSTIC"
+        m.profile != profile
             || !text(&m.observed_name)
             || m.game_map_id.is_some_and(|id| id > 9007199254740991)
     }) {
@@ -247,7 +256,9 @@ fn valid(record: &Record) -> bool {
         c.stage == "COMPLETE"
             && c.continuity == "CONTINUOUS"
             && c.incomplete_reason.is_none()
-            && c.map.as_ref().is_some_and(|m| m.game_map_id == Some(2997))
+            && c.map
+                .as_ref()
+                .is_some_and(|m| m.game_map_id == Some(map_id))
             && c.started_at.is_some()
             && c.ended_at.is_some()
             && !c.roster.is_empty()
@@ -403,8 +414,23 @@ struct ProductFile {
 fn product_file(config: Option<&Config>) -> Result<ProductFile, Status> {
     let config = config.ok_or(Status::NotConfigured)?;
     let root = validate_installation(&config.installation)?;
-    let toc = child(&root, Path::new("Interface/AddOns/RBGS/RBGS.toc"), false)
-        .map_err(|_| Status::MissingAddon)?;
+    let flavor = child(&root, Path::new(".flavor.info"), false)?;
+    let (flavor, _) = read_bounded(&flavor, 4096)?;
+    let anniversary = std::str::from_utf8(&flavor)
+        .map_err(|_| Status::WrongClient)?
+        .lines()
+        .last()
+        .is_some_and(|line| line.trim() == "wow_anniversary");
+    let toc = child(
+        &root,
+        Path::new(if anniversary {
+            "Interface/AddOns/RBGS/RBGS_TBC.toc"
+        } else {
+            "Interface/AddOns/RBGS/RBGS.toc"
+        }),
+        false,
+    )
+    .map_err(|_| Status::MissingAddon)?;
     let (metadata, _) = read_bounded(&toc, MAX_TOC_BYTES)?;
     let toc = std::str::from_utf8(&metadata).map_err(|_| Status::UnsupportedAddon)?;
     if !toc.lines().any(|line| {
@@ -456,7 +482,7 @@ fn game_message(status: Status) -> &'static str {
     match status {
         Status::Ready => "RBGS is installed and its saved data can be read.",
         Status::NotConfigured | Status::WrongClient => {
-            "Choose your Forever beta folder in Settings."
+            "Choose your Forever folder, or select _anniversary_ for temporary WSG tests."
         }
         Status::SelectSource => "Choose the WoW account you use to play Forever.",
         Status::MissingAddon => {
@@ -692,6 +718,28 @@ mod tests {
             assert_eq!(snapshots[0]["client"], value["captures"][0]["client"]);
         }
         assert_eq!(fixture(), legacy);
+    }
+    #[test]
+    fn anniversary_test_retains_provenance_and_rejects_cross_profile_records() {
+        let mut value = fixture();
+        let record = &mut value["captures"][0];
+        record["client"]["product"] = json!("wow_anniversary");
+        record["client"]["adapterVersion"] = json!("tbc-anniversary-wsg-test-v1");
+        record["client"]["gameVersion"] = json!("2.5.6");
+        record["client"]["gameBuild"] = json!("70006");
+        record["client"]["interface"] = json!(20506);
+        record["capture"]["map"]["profile"] = json!("TBC_ANNIVERSARY_WSG_TEST");
+        record["capture"]["map"]["gameMapId"] = json!(489);
+        assert_eq!(parse_history(&bytes(&value)).unwrap().matches.len(), 1);
+        assert_eq!(
+            snapshots(&bytes(&value)).unwrap()[0]["client"],
+            value["captures"][0]["client"]
+        );
+        value["captures"][0]["capture"]["map"]["gameMapId"] = json!(2997);
+        assert!(parse_history(&bytes(&value)).is_err());
+        value["captures"][0]["capture"]["map"]["gameMapId"] = json!(489);
+        value["captures"][0]["client"]["product"] = json!("wow_classic_beta");
+        assert!(parse_history(&bytes(&value)).is_err());
     }
     #[test]
     fn new_builds_still_require_known_adapters_valid_metadata_and_supported_maps() {
@@ -970,6 +1018,33 @@ mod tests {
         fs::create_dir_all(dir.path().join("WTF/Account/one/SavedVariables")).unwrap();
         fs::create_dir_all(dir.path().join("WTF/Account/two/SavedVariables")).unwrap();
         dir
+    }
+    #[test]
+    fn anniversary_product_setup_uses_tbc_toc_and_does_not_require_debugger() {
+        let dir = installation();
+        fs::write(
+            dir.path().join(".flavor.info"),
+            "Product Flavor!STRING:0\nwow_anniversary\n",
+        )
+        .unwrap();
+        fs::write(dir.path().join("WowClassic.exe"), b"fixture").unwrap();
+        fs::write(
+            dir.path().join("WTF/Account/one/SavedVariables/RBGS.lua"),
+            "RBGSMatchData={schema=2,captures={}}",
+        )
+        .unwrap();
+        let config = Config {
+            version: 1,
+            installation: fs::canonicalize(dir.path()).unwrap(),
+            account: Some("one".into()),
+        };
+        assert_eq!(game_view(Some(&config)).status, Status::MissingAddon);
+        fs::write(
+            dir.path().join("Interface/AddOns/RBGS/RBGS_TBC.toc"),
+            "## Interface: 20506\n## SavedVariables: RBGSMatchData",
+        )
+        .unwrap();
+        assert_eq!(game_view(Some(&config)).status, Status::Ready);
     }
     #[test]
     fn isolates_accounts_clears_missing_invalid_data_and_reads_after_restart() {

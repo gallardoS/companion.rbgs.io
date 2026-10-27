@@ -424,7 +424,7 @@ pub(super) fn product_json(bytes: &[u8]) -> Result<serde_json::Value> {
                     let Key::Text(key) = key else {
                         return Err(ParseError::InvalidRecords);
                     };
-                    let array = key == "captures" || key == "roster";
+                    let array = key == "captures" || key == "roster" || key == "interruptions";
                     object.insert(key, convert(value, array)?);
                 }
                 Json::Object(object)

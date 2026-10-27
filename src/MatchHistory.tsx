@@ -7,7 +7,7 @@ import { TestMatchProgress } from './TestMatchProgress';
 
 type Identity = { name: string; realm: string | null; guid: null };
 type Row = { character: Identity; observedTeamKey: string | null; killingBlows: number | null; honorableKills: number | null; deaths: number | null; damage: number | null; healing: number | null };
-type Match = { captureId: string; revision: number; character: Identity; map: { profile: string; observedName: string; gameMapId: number | null }; startedAt: string; endedAt: string; winner: string; roster: Row[]; build: string };
+type Match = { captureId: string; revision: number; character: Identity; map: { profile: string; observedName: string; gameMapId: number | null }; startedAt: string; endedAt: string; winner: string; roster: Row[]; build: string; reloadInterruptions?: number };
 type QueueItem = { captureId: string; revision: number; state: string; coverage: string; savedAt: number };
 type Queue = { status: string; message: string; snapshots: number; captures: number; conflicts: number; waitingAssignment: number; needsAuth: number; acknowledged?: number; pending?: number; blocked?: number; bytes: number; items: QueueItem[]; sourceStatus: string; sourceMessage: string; unboundSnapshots: number };
 export type HistoryView = { status: string; message: string; matches: Match[]; retainedAttempts: number; queue: Queue | null };
@@ -37,6 +37,7 @@ function valid(value: unknown): value is HistoryView {
       && number(m.revision) && m.revision !== null && m.revision >= 1 && m.revision <= 2147483647 && identity(m.character)
       && m.map && (m.map.profile === 'DARKSPEAR_DIAGNOSTIC' && m.map.gameMapId === 2997 || m.map.profile === 'TBC_ANNIVERSARY_WSG_TEST' && m.map.gameMapId === 489) && text(m.map.observedName)
       && text(m.startedAt) && Number.isFinite(Date.parse(m.startedAt)) && text(m.endedAt) && Number.isFinite(Date.parse(m.endedAt))
+      && (m.reloadInterruptions === undefined || typeof m.reloadInterruptions === 'number' && Number.isInteger(m.reloadInterruptions) && m.reloadInterruptions >= 0 && m.reloadInterruptions <= 32)
       && ['0', '1'].includes(m.winner) && typeof m.build === 'string' && /^[0-9]{1,10}$/.test(m.build) && /[1-9]/.test(m.build) && Array.isArray(m.roster) && m.roster.length >= 1 && m.roster.length <= 40
       && m.roster.every(row => row && identity(row.character) && [null, '0', '1'].includes(row.observedTeamKey)
         && [row.killingBlows, row.honorableKills, row.deaths, row.damage, row.healing].every(number)));
@@ -208,6 +209,7 @@ export function MatchHistory({ history, tests, accountId, sourceSelected, onSett
         <TestMatchProgress step={3} uploaded={state === 'ACKNOWLEDGED'} />
         <div className="test-next-step"><strong>{state === 'ACKNOWLEDGED' ? 'Results uploaded' : state === 'SENDING' ? 'Uploading saved results' : state ? deliveryLabels[state] : 'Final results saved on this PC'}</strong><p>{state === 'ACKNOWLEDGED' ? 'rbgs.io has received this saved version. Uploading does not verify the result.' : state && deliveryHelp[state] ? deliveryHelp[state] : 'Check Upload options to upload results for an assigned test.'}</p></div>
         <p className="saved-data-note">{match.roster.length} {match.roster.length === 1 ? 'player' : 'players'} in the saved scoreboard.</p>
+        {(match.reloadInterruptions ?? 0) > 0 && <p className="saved-data-note">Recording resumed after reload. Recorded interruptions: {match.reloadInterruptions}.</p>}
         <Scoreboard match={match} />
         <details className="diagnostics"><summary>Technical details</summary><dl className="saved-data-summary">
           <div><dt>Saved start time</dt><dd>{stamp(match.startedAt)}</dd></div>

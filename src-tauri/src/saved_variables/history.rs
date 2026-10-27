@@ -59,12 +59,46 @@ struct Capture {
     state: String,
     stage: String,
     continuity: String,
+    #[serde(default, deserialize_with = "deserialize_interruptions")]
+    interruptions: Option<Vec<Interruption>>,
     incomplete_reason: Option<String>,
     map: Option<Map>,
     started_at: Option<String>,
     ended_at: Option<String>,
     roster: Vec<Row>,
     outcome: Outcome,
+}
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct Interruption {
+    before: u64,
+    after: u64,
+}
+fn deserialize_interruptions<'de, D: serde::Deserializer<'de>>(
+    deserializer: D,
+) -> Result<Option<Vec<Interruption>>, D::Error> {
+    Vec::deserialize(deserializer).map(Some)
+}
+
+fn valid_interruptions(c: &Capture) -> bool {
+    let Some(gaps) = &c.interruptions else {
+        return c.continuity != "RESUMED";
+    };
+    if gaps.is_empty() || gaps.len() > 32 || c.continuity == "CONTINUOUS" {
+        return false;
+    }
+    let mut last = 0;
+    for gap in gaps {
+        if gap.before < last
+            || gap.after < gap.before
+            || gap.after > 9007199254740991
+            || gap.after - gap.before > 120
+        {
+            return false;
+        }
+        last = gap.after;
+    }
+    true
 }
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
@@ -86,6 +120,7 @@ pub struct Match {
     winner: String,
     roster: Vec<Row>,
     build: String,
+    reload_interruptions: usize,
 }
 #[derive(Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -206,7 +241,8 @@ fn valid(record: &Record) -> bool {
             .all(|b| b"0123456789ABCDEFGHJKMNPQRSTVWXYZ".contains(&b))
         || !identity(&record.observed_character)
         || c.roster.len() > 40
-        || !["CONTINUOUS", "UNKNOWN"].contains(&c.continuity.as_str())
+        || !["CONTINUOUS", "UNKNOWN", "RESUMED"].contains(&c.continuity.as_str())
+        || !valid_interruptions(c)
     {
         return false;
     }
@@ -254,7 +290,7 @@ fn valid(record: &Record) -> bool {
     }
     if c.state == "COMPLETE" {
         c.stage == "COMPLETE"
-            && c.continuity == "CONTINUOUS"
+            && c.continuity != "UNKNOWN"
             && c.incomplete_reason.is_none()
             && c.map
                 .as_ref()
@@ -380,6 +416,7 @@ pub(super) fn project_snapshot(value: serde_json::Value) -> Result<Option<Match>
         winner: c.outcome.winning_observed_team_key.unwrap(),
         roster,
         build: record.client.game_build,
+        reload_interruptions: c.interruptions.as_ref().map_or(0, Vec::len),
     }))
 }
 fn parse_history(bytes: &[u8]) -> Result<HistoryView, Status> {
@@ -854,6 +891,36 @@ mod tests {
         }
         let mut value = fixture();
         value["captures"][0]["capture"]["extra"] = json!("unsupported");
+        assert!(parse_history(&bytes(&value)).is_err());
+    }
+    #[test]
+    fn resumed_final_keeps_gaps_in_transport_and_exposes_count_without_secrets() {
+        let mut value = fixture();
+        value["captures"][0]["capture"]["continuity"] = json!("RESUMED");
+        assert!(parse_history(&bytes(&value)).is_err());
+        value["captures"][0]["capture"]["interruptions"] =
+            json!([{"before":1791734400,"after":1791734410}]);
+        let source = bytes(&value);
+        let records = snapshots(&source).unwrap();
+        assert_eq!(
+            records[0]["capture"]["interruptions"],
+            value["captures"][0]["capture"]["interruptions"]
+        );
+        let view = parse_history(&source).unwrap();
+        assert_eq!(view.matches[0].reload_interruptions, 1);
+        for gaps in [
+            json!(null),
+            json!([]),
+            json!([{"before":100,"after":99}]),
+            json!([{"before":100,"after":221}]),
+            json!([{"before":100,"after":110},{"before":105,"after":115}]),
+            json!(vec![json!({"before":100,"after":110}); 33]),
+        ] {
+            value["captures"][0]["capture"]["interruptions"] = gaps;
+            assert!(parse_history(&bytes(&value)).is_err());
+        }
+        value["captures"][0]["capture"]["interruptions"] = json!([{"before":100,"after":110}]);
+        value["captures"][0]["capture"]["continuity"] = json!("CONTINUOUS");
         assert!(parse_history(&bytes(&value)).is_err());
     }
     #[test]

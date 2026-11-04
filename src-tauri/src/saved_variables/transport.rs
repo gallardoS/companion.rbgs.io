@@ -939,10 +939,12 @@ mod tests {
     fn final_wire_matches_the_backend_fixture_including_lua_nulls() {
         let snapshot = fixture();
         let bytes = body(&snapshot, &assignment(&snapshot)).unwrap();
-        assert_eq!(
-            bytes,
-            include_bytes!("../../../tools/fixtures/evidence-wire.sanitized.json")
-        );
+        let expected = include_str!("../../../tools/fixtures/evidence-wire.sanitized.json")
+            .replace(
+                "\"companionVersion\":\"0.0.1\"",
+                &format!("\"companionVersion\":\"{}\"", env!("CARGO_PKG_VERSION")),
+            );
+        assert_eq!(bytes, expected.as_bytes());
     }
     #[test]
     fn flag_statistics_are_transported_without_backfilling_old_rows() {

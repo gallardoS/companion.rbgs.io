@@ -1,10 +1,30 @@
-name: Verify companion
-on: [push, pull_request]
+name: Build and release companion
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: companion-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
   verify:
     runs-on: windows-latest
+    timeout-minutes: 45
+    defaults:
+      run:
+        shell: pwsh
+    outputs:
+      tag: ${{ steps.version.outputs.tag }}
+      version: ${{ steps.version.outputs.version }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
@@ -15,9 +35,75 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
         with:
           components: rustfmt
+      - name: Set release version
+        id: version
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+        run: node tools/set-release-version.mjs
       - run: npm ci
       - run: npm run build
       - run: python -m unittest discover -s tools -p test_parse_probe.py
       - run: cargo fmt --check --manifest-path src-tauri/Cargo.toml
-      - run: cargo test --manifest-path src-tauri/Cargo.toml --lib
-      - run: npx tauri build --no-bundle
+      - run: cargo test --locked --manifest-path src-tauri/Cargo.toml --lib
+      - name: Build Windows installer
+        run: npm run tauri -- build --bundles nsis
+      - name: Prepare download
+        if: steps.version.outputs.tag != ''
+        run: |
+          $installers = @(Get-ChildItem -LiteralPath 'src-tauri/target/release/bundle/nsis' -Filter '*-setup.exe' -File)
+          if ($installers.Count -ne 1) { throw 'Expected exactly one Windows installer.' }
+          New-Item -ItemType Directory -Path release -Force | Out-Null
+          Copy-Item -LiteralPath $installers[0].FullName -Destination 'release/rbgs.io-companion-setup.exe'
+          $checksum = (Get-FileHash -LiteralPath 'release/rbgs.io-companion-setup.exe' -Algorithm SHA256).Hash.ToLowerInvariant()
+          "$checksum  rbgs.io-companion-setup.exe" | Set-Content -LiteralPath 'release/SHA256SUMS.txt' -Encoding utf8
+      - name: Store Windows download
+        if: steps.version.outputs.tag != ''
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-installer
+          path: release/*
+          if-no-files-found: error
+
+  release:
+    needs: verify
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: windows-installer
+          path: release
+      - name: Publish versioned release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RELEASE_TAG: ${{ needs.verify.outputs.tag }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $tag = $env:RELEASE_TAG
+          $existing = gh release view $tag --json isDraft,targetCommitish,assets 2>$null
+          if ($LASTEXITCODE -eq 0) {
+            $release = $existing | ConvertFrom-Json
+            if ($release.targetCommitish -ne $env:GITHUB_SHA) { throw 'This release tag belongs to another commit.' }
+            if (-not $release.isDraft) {
+              $names = @($release.assets.name)
+              if ('rbgs.io-companion-setup.exe' -notin $names -or 'SHA256SUMS.txt' -notin $names) {
+                throw 'The published release is missing its download files.'
+              }
+              Write-Output "Release $tag is already published."
+              exit 0
+            }
+            gh release upload $tag 'release/rbgs.io-companion-setup.exe' 'release/SHA256SUMS.txt' --clobber
+          } else {
+            gh release create $tag 'release/rbgs.io-companion-setup.exe' 'release/SHA256SUMS.txt' --draft --target $env:GITHUB_SHA --title "rbgs.io companion $tag" --generate-notes
+          }
+          if ($LASTEXITCODE -ne 0) { throw 'Could not prepare the release downloads.' }
+          # A build for an older commit must not replace the latest main build.
+          $head = gh api "repos/$env:GH_REPO/git/ref/heads/main" --jq '.object.sha'
+          if ($LASTEXITCODE -ne 0) { throw 'Could not check the main branch.' }
+          $latest = if ($head.Trim() -eq $env:GITHUB_SHA) { 'true' } else { 'false' }
+          gh release edit $tag --draft=false "--latest=$latest"
+          if ($LASTEXITCODE -ne 0) { throw 'Could not publish the release.' }

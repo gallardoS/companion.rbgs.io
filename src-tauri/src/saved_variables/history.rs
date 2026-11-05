@@ -462,12 +462,16 @@ fn product_file(config: Option<&Config>) -> Result<ProductFile, Status> {
         .lines()
         .last()
         .is_some_and(|line| line.trim() == "wow_anniversary");
+    // Prefer the renamed addon. A present but broken new installation must not
+    // silently read another addon's stale data. Older installations still work.
+    let renamed = root.join("Interface/AddOns/rbgs.io").exists();
     let toc = child(
         &root,
-        Path::new(if anniversary {
-            "Interface/AddOns/RBGS/RBGS_TBC.toc"
-        } else {
-            "Interface/AddOns/RBGS/RBGS.toc"
+        Path::new(match (renamed, anniversary) {
+            (true, true) => "Interface/AddOns/rbgs.io/rbgs.io_TBC.toc",
+            (true, false) => "Interface/AddOns/rbgs.io/rbgs.io.toc",
+            (false, true) => "Interface/AddOns/RBGS/RBGS_TBC.toc",
+            (false, false) => "Interface/AddOns/RBGS/RBGS.toc",
         }),
         false,
     )
@@ -492,9 +496,11 @@ fn product_file(config: Option<&Config>) -> Result<ProductFile, Status> {
     if !available.iter().any(|s| &s.id == account) {
         return Err(Status::SourceUnavailable);
     }
-    let relative = Path::new("WTF/Account")
-        .join(account)
-        .join("SavedVariables/RBGS.lua");
+    let relative = Path::new("WTF/Account").join(account).join(if renamed {
+        "SavedVariables/rbgs.io.lua"
+    } else {
+        "SavedVariables/RBGS.lua"
+    });
     if !root.join(&relative).exists() {
         return Err(Status::NoSavedData);
     }
@@ -527,10 +533,10 @@ fn game_message(status: Status) -> &'static str {
         }
         Status::SelectSource => "Choose the WoW account you use to play Forever.",
         Status::MissingAddon => {
-            "Install the rbgs.io addon (RBGS) in WoW, enable it, then use /reload or log out."
+            "Install the rbgs.io addon in WoW, enable it, then use /reload or log out."
         }
         Status::UnsupportedAddon => {
-            "Check that the rbgs.io addon (RBGS) is installed correctly and up to date."
+            "Check that the rbgs.io addon is installed correctly and up to date."
         }
         Status::NoSavedData => {
             "No RBGS data saved yet. Enable rbgs.io in WoW, log into your character, then use /reload or log out."
@@ -567,10 +573,9 @@ pub(super) fn game_view(config: Option<&Config>) -> GameView {
         std::thread::sleep(Duration::from_millis(250));
         let after_path = child(
             &file.root,
-            Path::new("WTF/Account")
-                .join(&file.account)
-                .join("SavedVariables/RBGS.lua")
-                .as_path(),
+            file.path
+                .strip_prefix(&file.root)
+                .map_err(|_| Status::UnstableFile)?,
             false,
         )
         .map_err(|_| Status::UnstableFile)?;
@@ -616,10 +621,8 @@ impl HistoryCache {
                 }
             }
             std::thread::sleep(Duration::from_millis(250));
-            let relative = Path::new("WTF/Account")
-                .join(&account)
-                .join("SavedVariables/RBGS.lua");
-            let after_path = child(&root, &relative, false).map_err(|_| Status::UnstableFile)?;
+            let relative = path.strip_prefix(&root).map_err(|_| Status::UnstableFile)?;
+            let after_path = child(&root, relative, false).map_err(|_| Status::UnstableFile)?;
             let (after, stat) = read_bounded(&after_path, MAX_BYTES)?;
             if path != after_path
                 || bytes != after
@@ -1121,6 +1124,81 @@ mod tests {
         fs::create_dir_all(dir.path().join("WTF/Account/two/SavedVariables")).unwrap();
         dir
     }
+    #[test]
+    fn renamed_forever_addon_uses_only_its_own_saved_file() {
+        let dir = installation();
+        fs::write(
+            dir.path().join(".flavor.info"),
+            "Product Flavor!STRING:0\nwowf\n",
+        )
+        .unwrap();
+        fs::write(dir.path().join("Wow.exe"), b"fixture").unwrap();
+        let addon = dir.path().join("Interface/AddOns/rbgs.io");
+        fs::create_dir_all(&addon).unwrap();
+        fs::write(
+            addon.join("rbgs.io.toc"),
+            "## Interface: 16001\n## SavedVariables: RBGSMatchData",
+        )
+        .unwrap();
+        let account = dir.path().join("WTF/Account/one/SavedVariables");
+        let legacy = bytes(&fixture());
+        fs::write(account.join("RBGS.lua"), &legacy).unwrap();
+        let config = Config {
+            version: 1,
+            installation: fs::canonicalize(dir.path()).unwrap(),
+            account: Some("one".into()),
+        };
+        assert_eq!(game_view(Some(&config)).status, Status::NoSavedData);
+        fs::write(account.join("rbgs.io.lua"), &legacy).unwrap();
+        assert_eq!(game_view(Some(&config)).status, Status::Ready);
+        assert_eq!(HistoryCache::default().read(Some(&config)).matches.len(), 1);
+        assert_eq!(
+            product_file(Some(&config))
+                .unwrap()
+                .path
+                .file_name()
+                .unwrap(),
+            "rbgs.io.lua"
+        );
+        fs::write(
+            account.join("rbgs.io.lua"),
+            "RBGSMatchData={schema=2,captures={}}",
+        )
+        .unwrap();
+        assert_eq!(game_view(Some(&config)).record_count, 0);
+        fs::write(account.join("rbgs.io.lua"), "broken").unwrap();
+        assert_eq!(game_view(Some(&config)).status, Status::InvalidData);
+        fs::remove_file(addon.join("rbgs.io.toc")).unwrap();
+        assert_eq!(game_view(Some(&config)).status, Status::MissingAddon);
+        assert_eq!(fs::read(account.join("RBGS.lua")).unwrap(), legacy);
+    }
+
+    #[test]
+    fn renamed_anniversary_addon_uses_renamed_tbc_toc() {
+        let dir = installation();
+        fs::write(dir.path().join(".flavor.info"), "wow_anniversary").unwrap();
+        fs::write(dir.path().join("WowClassic.exe"), b"fixture").unwrap();
+        let addon = dir.path().join("Interface/AddOns/rbgs.io");
+        fs::create_dir_all(&addon).unwrap();
+        fs::write(
+            addon.join("rbgs.io_TBC.toc"),
+            "## Interface: 20506\n## SavedVariables: RBGSMatchData",
+        )
+        .unwrap();
+        fs::write(
+            dir.path()
+                .join("WTF/Account/one/SavedVariables/rbgs.io.lua"),
+            "RBGSMatchData={schema=2,captures={}}",
+        )
+        .unwrap();
+        let config = Config {
+            version: 1,
+            installation: fs::canonicalize(dir.path()).unwrap(),
+            account: Some("one".into()),
+        };
+        assert_eq!(game_view(Some(&config)).status, Status::Ready);
+    }
+
     #[test]
     fn anniversary_product_setup_uses_tbc_toc_and_does_not_require_debugger() {
         let dir = installation();

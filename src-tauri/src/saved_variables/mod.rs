@@ -229,7 +229,11 @@ fn validate_installation(chosen: &Path) -> Result<PathBuf, Status> {
     let candidate = if chosen.join(".flavor.info").exists() {
         chosen.to_owned()
     } else {
-        chosen.join("_classic_beta_")
+        if chosen.join("_forever_").exists() {
+            chosen.join("_forever_")
+        } else {
+            chosen.join("_classic_beta_")
+        }
     };
     let metadata = fs::symlink_metadata(&candidate).map_err(|_| Status::WrongClient)?;
     if !regular(&metadata) || !metadata.is_dir() {
@@ -247,7 +251,9 @@ fn validate_installation(chosen: &Path) -> Result<PathBuf, Status> {
     let lines: Vec<_> = flavor.lines().map(str::trim).collect();
     let anniversary =
         lines == ["wow_anniversary"] || lines == ["Product Flavor!STRING:0", "wow_anniversary"];
+    let forever = lines == ["wowf"] || lines == ["Product Flavor!STRING:0", "wowf"];
     if !anniversary
+        && !forever
         && lines != ["wow_classic_beta"]
         && lines != ["Product Flavor!STRING:0", "wow_classic_beta"]
     {
@@ -255,7 +261,9 @@ fn validate_installation(chosen: &Path) -> Result<PathBuf, Status> {
     }
     child(
         &root,
-        Path::new(if anniversary {
+        Path::new(if forever {
+            "Wow.exe"
+        } else if anniversary {
             "WowClassic.exe"
         } else {
             "WowB.exe"

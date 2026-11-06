@@ -35,7 +35,7 @@ function valid(value: unknown): value is HistoryView {
     && (view.status === 'READY' || view.matches.length === 0)
     && view.matches.every(m => m && typeof m.captureId === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(m.captureId)
       && number(m.revision) && m.revision !== null && m.revision >= 1 && m.revision <= 2147483647 && identity(m.character)
-      && m.map && (m.map.profile === 'DARKSPEAR_DIAGNOSTIC' && m.map.gameMapId === 2997 || m.map.profile === 'TBC_ANNIVERSARY_WSG_TEST' && m.map.gameMapId === 489) && text(m.map.observedName)
+      && m.map && (m.map.profile === 'DARKSPEAR_DIAGNOSTIC' && m.map.gameMapId === 2997 || (m.map.profile === 'TBC_ANNIVERSARY_WSG_TEST' || m.map.profile === 'FOREVER_WSG_TEST') && m.map.gameMapId === 489) && text(m.map.observedName)
       && text(m.startedAt) && Number.isFinite(Date.parse(m.startedAt)) && text(m.endedAt) && Number.isFinite(Date.parse(m.endedAt))
       && (m.reloadInterruptions === undefined || typeof m.reloadInterruptions === 'number' && Number.isInteger(m.reloadInterruptions) && m.reloadInterruptions >= 0 && m.reloadInterruptions <= 32)
       && ['0', '1'].includes(m.winner) && typeof m.build === 'string' && /^[0-9]{1,10}$/.test(m.build) && /[1-9]/.test(m.build) && Array.isArray(m.roster) && m.roster.length >= 1 && m.roster.length <= 40
@@ -227,7 +227,7 @@ export function MatchHistory({ history, tests, accountId, sourceSelected, onSett
     {hiddenTests.lastHidden && <div className="history-undo"><span role="status">Test hidden on this PC.</span><button ref={undoRef} className="button-link" onClick={hiddenTests.undo}>Undo hide</button></div>}
     {(closedTests.length > 0 || hiddenCount > 0) && <details className="closed-tests" ref={closedTestsRef}><summary>Closed tests <span>({closedTests.length})</span></summary>
       {closedTests.map(test => <article className="history-test" key={test.captureId}>
-        <div className="match-identity"><strong>{test.character.name}</strong><span className="match-meta"><span>{test.character.realm ? `${test.character.realm} · ` : ''}{test.expectedMapProfile === 'TBC_ANNIVERSARY_WSG_TEST' ? 'TBC Anniversary / WSG · Temporary test' : 'Darkspear'}</span><time dateTime={test.armUntil} title={`Command deadline: ${stamp(test.armUntil)}`}>{shortStamp(test.armUntil)}</time></span></div>
+        <div className="match-identity"><strong>{test.character.name}</strong><span className="match-meta"><span>{test.character.realm ? `${test.character.realm} · ` : ''}{test.expectedMapProfile === 'FOREVER_WSG_TEST' ? 'Forever / WSG' : test.expectedMapProfile === 'TBC_ANNIVERSARY_WSG_TEST' ? 'TBC Anniversary / WSG · Temporary test' : 'Darkspear'}</span><time dateTime={test.armUntil} title={`Command deadline: ${stamp(test.armUntil)}`}>{shortStamp(test.armUntil)}</time></span></div>
         <span className="state-label state-neutral">{test.cancelled ? 'Cancelled' : 'Expired'}</span>
         <button className="history-test-hide" title="Hide test on this PC" aria-label={`Hide ${test.cancelled ? 'cancelled' : 'expired'} test for ${test.character.name}`} onClick={() => hiddenTests.hide(test.captureId)}><Icon name="close" /></button>
       </article>)}

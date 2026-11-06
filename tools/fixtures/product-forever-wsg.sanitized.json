@@ -1,0 +1,309 @@
+{
+  "schema": 2,
+  "captures": [
+    {
+      "capture": {
+        "continuity": "CONTINUOUS",
+        "roster": [
+          {
+            "observedTeamKey": "0",
+            "deaths": 0,
+            "killingBlows": 9,
+            "character": {
+              "name": "Synthetic Player01",
+              "realm": null
+            },
+            "flagsCaptured": 1,
+            "flagsReturned": 0,
+            "honorableKills": 31,
+            "healing": 243,
+            "damage": 3223
+          },
+          {
+            "observedTeamKey": "0",
+            "deaths": 0,
+            "killingBlows": 8,
+            "character": {
+              "name": "Synthetic Player02",
+              "realm": null
+            },
+            "flagsCaptured": 0,
+            "flagsReturned": 0,
+            "honorableKills": 18,
+            "healing": 0,
+            "damage": 3767
+          },
+          {
+            "observedTeamKey": "0",
+            "deaths": 0,
+            "killingBlows": 6,
+            "character": {
+              "name": "Synthetic Player03",
+              "realm": null
+            },
+            "flagsCaptured": 0,
+            "flagsReturned": 0,
+            "honorableKills": 18,
+            "healing": 120,
+            "damage": 2389
+          },
+          {
+            "observedTeamKey": "0",
+            "deaths": 0,
+            "killingBlows": 3,
+            "character": {
+              "name": "Synthetic Player04",
+              "realm": null
+            },
+            "flagsCaptured": 0,
+            "flagsReturned": 0,
+            "honorableKills": 18,
+            "healing": 5942,
+            "damage": 3463
+          },
+          {
+            "observedTeamKey": "0",
+            "deaths": 0,
+            "killingBlows": 2,
+            "character": {
+              "name": "Synthetic Player05",
+              "realm": null
+            },
+            "flagsCaptured": 0,
+            "flagsReturned": 0,
+            "honorableKills": 37,
+            "healing": 1636,
+            "damage": 906
+          },
+          {
+            "observedTeamKey": "0",
+            "deaths": 0,
+            "killingBlows": 2,
+            "character": {
+              "name": "Synthetic Player06",
+              "realm": null
+            },
+            "flagsCaptured": 0,
+            "flagsReturned": 0,
+            "honorableKills": 42,
+            "healing": 38,
+            "damage": 1410
+          },
+          {
+            "observedTeamKey": "1",
+            "deaths": 5,
+            "killingBlows": 1,
+            "character": {
+              "name": "Synthetic Player07",
+              "realm": null
+            },
+            "flagsCaptured": 0,
+            "flagsReturned": 0,
+            "honorableKills": 1,
+            "healing": 0,
+            "damage": 1429
+          },
+          {
+            "observedTeamKey": "1",
+            "deaths": 8,
+            "killingBlows": 0,
+            "character": {
+              "name": "Synthetic Player08",
+              "realm": null
+            },
+            "flagsCaptured": 0,
+            "flagsReturned": 0,
+            "honorableKills": 1,
+            "healing": 0,
+            "damage": 1874
+          },
+          {
+            "observedTeamKey": "1",
+            "deaths": 5,
+            "killingBlows": 0,
+            "character": {
+              "name": "Synthetic Player09",
+              "realm": null
+            },
+            "flagsCaptured": 0,
+            "flagsReturned": 0,
+            "honorableKills": 1,
+            "healing": 1261,
+            "damage": 1476
+          },
+          {
+            "observedTeamKey": "1",
+            "deaths": 5,
+            "killingBlows": 0,
+            "character": {
+              "name": "Synthetic Player10",
+              "realm": null
+            },
+            "flagsCaptured": 0,
+            "flagsReturned": 0,
+            "honorableKills": 0,
+            "healing": 0,
+            "damage": 1510
+          },
+          {
+            "observedTeamKey": "1",
+            "deaths": 5,
+            "killingBlows": 0,
+            "character": {
+              "name": "Synthetic Player11",
+              "realm": null
+            },
+            "flagsCaptured": 0,
+            "flagsReturned": 0,
+            "honorableKills": 0,
+            "healing": 873,
+            "damage": 1728
+          },
+          {
+            "observedTeamKey": "1",
+            "deaths": 4,
+            "killingBlows": 0,
+            "character": {
+              "name": "Synthetic Player12",
+              "realm": null
+            },
+            "flagsCaptured": 0,
+            "flagsReturned": 0,
+            "honorableKills": 0,
+            "healing": 66,
+            "damage": 938
+          },
+          {
+            "observedTeamKey": "1",
+            "deaths": 4,
+            "killingBlows": 0,
+            "character": {
+              "name": "Synthetic Player13",
+              "realm": null
+            },
+            "flagsCaptured": 0,
+            "flagsReturned": 0,
+            "honorableKills": 0,
+            "healing": 0,
+            "damage": 2560
+          },
+          {
+            "observedTeamKey": "1",
+            "deaths": 3,
+            "killingBlows": 0,
+            "character": {
+              "name": "Synthetic Player14",
+              "realm": null
+            },
+            "flagsCaptured": 0,
+            "flagsReturned": 0,
+            "honorableKills": 0,
+            "healing": 3004,
+            "damage": 504
+          },
+          {
+            "observedTeamKey": "1",
+            "deaths": 2,
+            "killingBlows": 0,
+            "character": {
+              "name": "Synthetic Player15",
+              "realm": null
+            },
+            "flagsCaptured": 0,
+            "flagsReturned": 0,
+            "honorableKills": 1,
+            "healing": 47,
+            "damage": 41
+          },
+          {
+            "observedTeamKey": "0",
+            "deaths": 1,
+            "killingBlows": 0,
+            "character": {
+              "name": "Synthetic Player16",
+              "realm": null
+            },
+            "flagsCaptured": 0,
+            "flagsReturned": 0,
+            "honorableKills": 39,
+            "healing": 19,
+            "damage": 502
+          },
+          {
+            "observedTeamKey": "1",
+            "deaths": 1,
+            "killingBlows": 0,
+            "character": {
+              "name": "Synthetic Player17",
+              "realm": null
+            },
+            "flagsCaptured": 0,
+            "flagsReturned": 0,
+            "honorableKills": 0,
+            "healing": 0,
+            "damage": 2951
+          },
+          {
+            "observedTeamKey": "0",
+            "deaths": 0,
+            "killingBlows": 0,
+            "character": {
+              "name": "Synthetic Player18",
+              "realm": null
+            },
+            "flagsCaptured": 0,
+            "flagsReturned": 0,
+            "honorableKills": 42,
+            "healing": 2526,
+            "damage": 662
+          },
+          {
+            "observedTeamKey": "0",
+            "deaths": 0,
+            "killingBlows": 0,
+            "character": {
+              "name": "Synthetic Player19",
+              "realm": null
+            },
+            "flagsCaptured": 2,
+            "flagsReturned": 0,
+            "honorableKills": 24,
+            "healing": 720,
+            "damage": 470
+          }
+        ],
+        "startedAt": "2026-11-06T13:00:00Z",
+        "outcome": {
+          "kind": "WIN",
+          "winningObservedTeamKey": "0",
+          "rawWinner": "0"
+        },
+        "endedAt": "2026-11-06T13:16:00Z",
+        "map": {
+          "profile": "FOREVER_WSG_TEST",
+          "observedName": "Warsong Gulch",
+          "gameMapId": 489
+        },
+        "stage": "COMPLETE",
+        "state": "COMPLETE",
+        "incompleteReason": null
+      },
+      "observedCharacter": {
+        "realm": "Fixture Realm",
+        "name": "Synthetic Player19",
+        "guid": "fixture-guid"
+      },
+      "captureRevision": 4,
+      "captureId": "00000000-0000-4000-8000-000000000003",
+      "client": {
+        "gameVersion": "1.60.1",
+        "addonVersion": "0.2.2-alpha.1",
+        "gameBuild": "70790",
+        "product": "wow_forever",
+        "adapterVersion": "forever-wsg-v1",
+        "interface": 16001
+      },
+      "assignmentCode": "0123456789ABCDEF"
+    }
+  ]
+}

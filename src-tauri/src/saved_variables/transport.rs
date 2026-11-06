@@ -56,7 +56,10 @@ impl Session {
             .request(method, format!("{}{path}", self.endpoint))
             .bearer_auth(&self.token)
             .header("X-RBGS-Capture-Test-Kinds", "CAPTURE_ONLY")
-            .header("X-RBGS-Capture-Test-Profile", "TBC_ANNIVERSARY_WSG_TEST")
+            .header(
+                "X-RBGS-Capture-Test-Profile",
+                "TBC_ANNIVERSARY_WSG_TEST,FOREVER_WSG_TEST",
+            )
             .header("Accept", "application/json");
         if let Some(body) = body {
             request = request
@@ -152,7 +155,9 @@ fn descriptor(value: &Value, capture: &str) -> Result<(), String> {
         && value["schemaVersion"] == 2
         && value["mode"] == "CONTROLLED_TEST"
         && (value["expectedMapProfile"] == "DARKSPEAR_DIAGNOSTIC"
-            || capture_only && value["expectedMapProfile"] == "TBC_ANNIVERSARY_WSG_TEST")
+            || capture_only
+                && (value["expectedMapProfile"] == "TBC_ANNIVERSARY_WSG_TEST"
+                    || value["expectedMapProfile"] == "FOREVER_WSG_TEST"))
         && [
             "matchId",
             "assignmentId",
@@ -204,7 +209,9 @@ fn body(snapshot: &Value, assignment: &Value) -> Result<Vec<u8>, String> {
         snapshot["captureId"].as_str().ok_or("Invalid capture ID")?,
     )?;
     let anniversary = assignment["expectedMapProfile"] == "TBC_ANNIVERSARY_WSG_TEST";
+    let forever = assignment["expectedMapProfile"] == "FOREVER_WSG_TEST";
     if (snapshot["client"]["product"] == "wow_anniversary") != anniversary
+        || (snapshot["client"]["product"] == "wow_forever") != forever
         || !snapshot["capture"]["map"].is_null()
             && snapshot["capture"]["map"]["profile"] != assignment["expectedMapProfile"]
     {
@@ -327,7 +334,9 @@ pub async fn list_capture_assignments(app: tauri::AppHandle) -> Result<Value, St
     crate::assignments::refresh_list(&app).await
 }
 fn match_command(capture: &str, code: &str, assignment: &Value) -> String {
-    let action = if assignment["expectedMapProfile"] == "TBC_ANNIVERSARY_WSG_TEST" {
+    let action = if assignment["expectedMapProfile"] == "FOREVER_WSG_TEST" {
+        "test-forever-wsg"
+    } else if assignment["expectedMapProfile"] == "TBC_ANNIVERSARY_WSG_TEST" {
         "test-wsg"
     } else {
         "match"
@@ -795,6 +804,45 @@ mod tests {
         descriptor.as_object_mut().unwrap().remove("testKind");
         assert!(body(&snapshot, &descriptor).is_err()); // Single-row shape needs explicit purpose.
     }
+    #[test]
+    fn forever_wsg_wire_preserves_real_flag_distribution_and_explicit_command() {
+        let root: Value = serde_json::from_str(include_str!(
+            "../../../tools/fixtures/product-forever-wsg.sanitized.json"
+        ))
+        .unwrap();
+        let snapshot = root["captures"][0].clone();
+        let mut value = assignment(&snapshot);
+        value["testKind"] = json!("CAPTURE_ONLY");
+        value["assignedTeamKey"] = Value::Null;
+        value["expectedRoster"] = json!([{"characterId":ACCOUNT,"assignedTeamKey":null}]);
+        value["expectedMapProfile"] = json!("FOREVER_WSG_TEST");
+        let wire: Value = serde_json::from_slice(&body(&snapshot, &value).unwrap()).unwrap();
+        let rows = wire["capture"]["roster"].as_array().unwrap();
+        assert_eq!(rows.len(), 19);
+        assert_eq!(
+            rows.iter()
+                .map(|r| r["flagsCaptured"].as_u64().unwrap())
+                .sum::<u64>(),
+            3
+        );
+        assert_eq!(
+            rows.iter()
+                .map(|r| r["flagsReturned"].as_u64().unwrap())
+                .sum::<u64>(),
+            0
+        );
+        assert!(
+            match_command(
+                snapshot["captureId"].as_str().unwrap(),
+                "0123456789ABCDEF",
+                &value
+            )
+            .starts_with("/rbgs test-forever-wsg ")
+        );
+        value.as_object_mut().unwrap().remove("testKind");
+        assert!(body(&snapshot, &value).is_err());
+    }
+
     #[test]
     fn anniversary_command_and_profile_survive_saved_issuance_restart() {
         let mut snapshot = fixture();

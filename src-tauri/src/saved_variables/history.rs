@@ -218,13 +218,17 @@ fn valid(record: &Record) -> bool {
     let client = &record.client;
     let anniversary = client.product == "wow_anniversary"
         && client.adapter_version == "tbc-anniversary-wsg-test-v1";
-    let profile = if anniversary {
+    let forever = client.product == "wow_forever" && client.adapter_version == "forever-wsg-v1";
+    let profile = if forever {
+        "FOREVER_WSG_TEST"
+    } else if anniversary {
         "TBC_ANNIVERSARY_WSG_TEST"
     } else {
         "DARKSPEAR_DIAGNOSTIC"
     };
-    let map_id = if anniversary { 489 } else { 2997 };
+    let map_id = if anniversary || forever { 489 } else { 2997 };
     let supported = (anniversary
+        || forever
         || client.product == "wow_classic_beta"
             && ["darkspear-scoreboard-v1", "darkspear-70338-test-1"]
                 .contains(&client.adapter_version.as_str()))
@@ -836,6 +840,22 @@ mod tests {
         assert!(!ui.contains("0123456789ABCDEF"));
         assert!(!ui.contains("fixture-player-guid"));
         assert!(!ui.contains("assignmentCode"));
+    }
+
+    #[test]
+    fn forever_wsg_profile_reads_final_flags_without_relabeling_legacy_captures() {
+        let mut root: Json = serde_json::from_str(include_str!(
+            "../../../tools/fixtures/product-forever-wsg.sanitized.json"
+        ))
+        .unwrap();
+        let history = parse_history(&bytes(&root)).unwrap();
+        assert_eq!(history.matches.len(), 1);
+        assert_eq!(history.matches[0].roster.len(), 19);
+        root["captures"][0]["client"]["product"] = json!("wow_classic_beta");
+        assert!(parse_history(&bytes(&root)).is_err());
+        root["captures"][0]["client"]["product"] = json!("wow_forever");
+        root["captures"][0]["capture"]["map"]["profile"] = json!("TBC_ANNIVERSARY_WSG_TEST");
+        assert!(parse_history(&bytes(&root)).is_err());
     }
     #[test]
     fn flag_statistics_survive_parsing_projection_and_legacy_absence() {

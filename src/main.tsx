@@ -1,6 +1,7 @@
 import { StrictMode, useCallback, useEffect, useRef, useState } from 'react';
 import { invoke } from '@tauri-apps/api/core';
 import { createRoot } from 'react-dom/client';
+import { version as companionVersion } from '../src-tauri/tauri.conf.json';
 import { SavedVariables, useSavedVariables } from './SavedVariables';
 import { MatchHistory, useMatchHistory } from './MatchHistory';
 import { CaptureAssignments, type AssignmentSummary } from './CaptureAssignments';
@@ -283,6 +284,7 @@ function App() {
         </section>
       </div>
     </main>
+    <footer className="app-version">v{companionVersion}</footer>
   </div>;
 }
 

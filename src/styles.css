@@ -89,6 +89,7 @@ svg { flex-shrink: 0; }
 .companion-tabs button[aria-selected=true]::after { position: absolute; right: 0; bottom: -1px; left: 0; height: 2px; background: var(--accent); content: ''; }
 .companion-tabs button:focus-visible { outline-offset: -4px; }
 .page-scroll { flex: 1; min-height: 0; overflow-y: auto; overflow-x: hidden; }
+.app-version { flex-shrink: 0; padding: .35rem .75rem; color: var(--muted); font-size: .75rem; line-height: 1; text-align: right; font-variant-numeric: tabular-nums; }
 .content { width: 100%; max-width: var(--content-width); margin: 0 auto; padding: 1.25rem 1.5rem 2rem; }
 .page-heading { margin-bottom: 1.15rem; }
 .page-heading p { margin-bottom: 0; }

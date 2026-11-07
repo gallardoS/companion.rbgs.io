@@ -6,10 +6,9 @@ import type { HistoryView } from './MatchHistory';
 import type { ClosedTest } from './testHistory';
 import { errorDetail, Feedback } from './Feedback';
 import { TestMatchProgress } from './TestMatchProgress';
+import { isAssignmentCommand, isAssignmentList, type Assignment } from './captureAssignment';
 
-type Assignment = { captureId: string; assignmentId: string; expectedMapProfile?: string; character: { name: string; realm: string | null }; armUntil: string; codeIssued: boolean; cancelled: boolean; command: string | null };
 export type AssignmentSummary = { captureIds: string[]; error: boolean; closedTests: ClosedTest[] };
-const commandPattern = /^\/rbgs (?:match|test-wsg) RB2:[0-9a-f-]{36}:[0-9A-HJKMNP-TV-Z]{16}$/i;
 function timeRemaining(deadline: string, now: number) {
   const seconds = Math.max(0, Math.ceil((Date.parse(deadline) - now) / 1000));
   if (seconds >= 86400) return `${Math.floor(seconds / 86400)}d ${Math.floor(seconds % 86400 / 3600)}h`;
@@ -72,7 +71,7 @@ export function CaptureAssignments({ accountId, enabled, companionReady, history
     setLoading(true);
     try {
       const result = await invoke<Assignment[]>('list_capture_assignments');
-      if (!Array.isArray(result) || result.length > 50 || !result.every(row => row && typeof row.captureId === 'string' && /^[0-9a-f-]{36}$/i.test(row.captureId) && row.character && typeof row.character.name === 'string' && (row.character.realm === null || typeof row.character.realm === 'string') && typeof row.codeIssued === 'boolean' && typeof row.cancelled === 'boolean' && Number.isFinite(Date.parse(row.armUntil)) && (row.command === null || typeof row.command === 'string' && commandPattern.test(row.command)))) throw Error('Invalid assignment list');
+      if (!isAssignmentList(result)) throw Error('Invalid assignment list');
       if (!mounted.current || epoch !== loadEpoch.current || !allowed.current) return;
       setRows(result); setLoaded(true); setLoadError(null);
     } catch (err) {
@@ -121,7 +120,7 @@ export function CaptureAssignments({ accountId, enabled, companionReady, history
     issuingRef.current = true; setIssuingId(row.captureId);
     try {
       const command = await invoke<string>('issue_capture_assignment', { captureId: row.captureId });
-      if (typeof command !== 'string' || !commandPattern.test(command)) throw Error('Invalid assignment command');
+      if (!isAssignmentCommand(command)) throw Error('Invalid assignment command');
       if (!mounted.current || !allowed.current) return;
       await load();
       if (!mounted.current || !allowed.current) return;

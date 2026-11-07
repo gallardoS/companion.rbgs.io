@@ -13,6 +13,7 @@ import { errorDetail, Feedback } from './Feedback';
 import { useAssignmentActivity } from './useAssignmentActivity';
 import { Icon, Navigation, tabs, type TabId } from './Navigation';
 import './styles.css';
+import { AutoUpdate } from './AutoUpdate';
 
 function App() {
   const [activeTab, setActiveTab] = useState<TabId>('home');
@@ -233,6 +234,7 @@ function App() {
   const companionReady = accountReady && gameSetup(source).ready && !storageWarning && !history.error
     && (!queue || queue.status === 'READY' && queue.conflicts === 0 && queue.needsAuth === 0 && queue.waitingAssignment === 0 && (queue.blocked ?? 0) === 0);
   return <div className="app-shell">
+    <AutoUpdate />
     <header className="app-header"><div className="header-inner">
       <div className="brand-lockup"><span className="brand">rbgs.io</span><span className="product-name">Companion</span></div>
       <div className="connection-status"><span className={`connection-badge ${connecting ? 'is-pending' : connected ? 'is-connected' : connection === 'checking' ? 'is-pending' : 'is-unavailable'}`} role="status"><span className="status-dot" />{webConnecting ? 'Connecting…' : pairing ? 'Waiting for approval' : copy.label}</span>

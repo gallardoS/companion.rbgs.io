@@ -41,11 +41,16 @@ jobs:
         run: node tools/set-release-version.mjs
       - run: npm ci
       - run: npm run build
+      - run: node --test tools/test-updates.mjs
       - run: python -m unittest discover -s tools -p test_parse_probe.py
       - run: cargo fmt --check --manifest-path src-tauri/Cargo.toml
       - run: cargo test --locked --manifest-path src-tauri/Cargo.toml --lib
       - name: Build Windows installer
-        run: npm run tauri -- build --bundles nsis
+        env:
+          RBGS_UPDATER_PUBLIC_KEY: ${{ steps.version.outputs.tag != '' && vars.RBGS_UPDATER_PUBLIC_KEY || '' }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ steps.version.outputs.tag != '' && secrets.TAURI_SIGNING_PRIVATE_KEY || '' }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ steps.version.outputs.tag != '' && secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD || '' }}
+        run: node tools/build-installer.mjs
       - name: Prepare download
         if: steps.version.outputs.tag != ''
         run: |
@@ -53,8 +58,16 @@ jobs:
           if ($installers.Count -ne 1) { throw 'Expected exactly one Windows installer.' }
           New-Item -ItemType Directory -Path release -Force | Out-Null
           Copy-Item -LiteralPath $installers[0].FullName -Destination 'release/rbgs.io-companion-setup.exe'
+          if (Test-Path -LiteralPath ($installers[0].FullName + '.sig')) {
+            Copy-Item -LiteralPath ($installers[0].FullName + '.sig') -Destination 'release/rbgs.io-companion-setup.exe.sig'
+          }
           $checksum = (Get-FileHash -LiteralPath 'release/rbgs.io-companion-setup.exe' -Algorithm SHA256).Hash.ToLowerInvariant()
           "$checksum  rbgs.io-companion-setup.exe" | Set-Content -LiteralPath 'release/SHA256SUMS.txt' -Encoding utf8
+      - name: Prepare updater manifest
+        if: steps.version.outputs.tag != ''
+        env:
+          RBGS_UPDATER_PUBLIC_KEY: ${{ vars.RBGS_UPDATER_PUBLIC_KEY }}
+        run: node tools/prepare-update.mjs
       - name: Store Windows download
         if: steps.version.outputs.tag != ''
         uses: actions/upload-artifact@v4
@@ -84,6 +97,7 @@ jobs:
         run: |
           $ErrorActionPreference = 'Stop'
           $tag = $env:RELEASE_TAG
+          $files = @(Get-ChildItem -LiteralPath release -File | ForEach-Object { $_.FullName })
           $existing = gh release view $tag --json isDraft,targetCommitish,assets 2>$null
           if ($LASTEXITCODE -eq 0) {
             $release = $existing | ConvertFrom-Json
@@ -93,12 +107,15 @@ jobs:
               if ('rbgs.io-companion-setup.exe' -notin $names -or 'SHA256SUMS.txt' -notin $names) {
                 throw 'The published release is missing its download files.'
               }
+              foreach ($file in $files) {
+                if ([IO.Path]::GetFileName($file) -notin $names) { throw 'The published release is missing an updater file.' }
+              }
               Write-Output "Release $tag is already published."
               exit 0
             }
-            gh release upload $tag 'release/rbgs.io-companion-setup.exe' 'release/SHA256SUMS.txt' --clobber
+            gh release upload $tag @files --clobber
           } else {
-            gh release create $tag 'release/rbgs.io-companion-setup.exe' 'release/SHA256SUMS.txt' --draft --target $env:GITHUB_SHA --title "rbgs.io companion $tag" --generate-notes
+            gh release create $tag @files --draft --target $env:GITHUB_SHA --title "rbgs.io companion $tag" --generate-notes
           }
           if ($LASTEXITCODE -ne 0) { throw 'Could not prepare the release downloads.' }
           # A build for an older commit must not replace the latest main build.

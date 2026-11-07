@@ -8,6 +8,7 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_notification::init())
+        .plugin(tauri_plugin_updater::Builder::new().build())
         .manage(pairing::PairingState::default())
         .manage(web_connect::WebConnectState::default())
         .manage(saved_variables::SavedVariablesState::default())
@@ -15,6 +16,7 @@ pub fn run() {
         .manage(assignments::AssignmentState::default())
         .setup(presence::setup)
         .invoke_handler(tauri::generate_handler![
+            updates::update_on_startup,
             pairing::start_pairing,
             pairing::poll_pairing,
             pairing::open_pairing_browser,
@@ -41,4 +43,5 @@ mod presence;
 mod saved_variables;
 #[cfg(desktop)]
 mod tray;
+mod updates;
 mod web_connect;

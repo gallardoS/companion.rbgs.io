@@ -10,17 +10,10 @@ Download **rbgs.io-companion-setup.exe** from the [latest release](https://githu
 
 Open the companion, connect your account, and select your WoW folder. Install and enable the RBGS addon to capture your matches.
 
-## Compile it yourself
+## Automatic updates
 
-On Windows, install [Node.js 22.12 or newer](https://nodejs.org/), [Rust 1.90 or newer](https://rustup.rs/), and the [Tauri Windows prerequisites](https://v2.tauri.app/start/prerequisites/#windows), including Microsoft C++ Build Tools and WebView2.
+The companion checks for a newer version when you open it. If an update is available, a popup shows the download progress. The installer then updates the companion and reopens it automatically. Your connected account, settings, and saved matches are kept.
 
-Clone this repository and run the following commands from its folder.
+If you are offline or the download fails, you can keep using your current version. The companion will check again the next time you open it.
 
-```powershell
-npm ci
-npm run tauri -- build --bundles nsis
-```
-
-Your installer will be in `src-tauri/target/release/bundle/nsis/`.
-
-Each successful build on `main` publishes a new numbered release with the Windows installer. You can also run **Build and release companion** manually from GitHub Actions on `main`.
+If you have an older version without automatic updates, download and install the [latest version](https://github.com/gallardoS/companion.rbgs.io/releases/latest) once to enable them.

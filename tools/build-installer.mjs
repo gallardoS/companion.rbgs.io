@@ -6,7 +6,10 @@ if (Boolean(publicKey) !== Boolean(privateKey)) {
   throw new Error('Configure both RBGS_UPDATER_PUBLIC_KEY and TAURI_SIGNING_PRIVATE_KEY to enable updates.');
 }
 const args = ['node_modules/@tauri-apps/cli/tauri.js', 'build', '--bundles', 'nsis'];
-if (publicKey) args.push('--config', JSON.stringify({ bundle: { createUpdaterArtifacts: true } }));
+if (publicKey) args.push('--config', JSON.stringify({
+  bundle: { createUpdaterArtifacts: true },
+  plugins: { updater: { pubkey: publicKey } },
+}));
 const result = spawnSync(process.execPath, args, { stdio: 'inherit', env: process.env });
 if (result.error) throw result.error;
 process.exit(result.status ?? 1);

@@ -41,3 +41,27 @@ test('build rejects a public key without its signing key', () => {
   assert.notEqual(result.status, 0);
   assert.match(result.stderr, /Configure both/);
 });
+
+test('signed build supplies the public key to the Tauri bundler', async () => {
+  const directory = await mkdtemp(join(tmpdir(), 'rbgs-signed-build-test-'));
+  try {
+    await mkdir(join(directory, 'node_modules/@tauri-apps/cli'), { recursive: true });
+    await writeFile(join(directory, 'node_modules/@tauri-apps/cli/tauri.js'),
+      "require('node:fs').writeFileSync('build-args.json', JSON.stringify(process.argv.slice(2)));\n");
+    const result = spawnSync(process.execPath, [resolve('tools/build-installer.mjs')], {
+      cwd: directory, encoding: 'utf8',
+      env: { ...process.env, RBGS_UPDATER_PUBLIC_KEY: 'test-public-key', TAURI_SIGNING_PRIVATE_KEY: 'test-private-key' },
+    });
+    assert.equal(result.status, 0, result.stderr);
+    const args = JSON.parse(await readFile(join(directory, 'build-args.json'), 'utf8'));
+    assert.deepEqual(args.slice(0, 3), ['build', '--bundles', 'nsis']);
+    assert.equal(args[3], '--config');
+    assert.deepEqual(JSON.parse(args[4]), {
+      bundle: { createUpdaterArtifacts: true },
+      plugins: { updater: { pubkey: 'test-public-key' } },
+    });
+    assert.ok(!args.join(' ').includes('test-private-key'));
+  } finally {
+    await rm(directory, { recursive: true, force: true });
+  }
+});

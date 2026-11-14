@@ -32,6 +32,4 @@ tauri-plugin-opener = "2"
 tauri-plugin-updater = "=2.14.1"
 tauri-plugin-notification = "=2.7.0"
 chrono = { version = "0.4.45", default-features = false, features = ["std"] }
-
-[dev-dependencies]
 tempfile = "3"

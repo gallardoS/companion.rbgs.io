@@ -14,9 +14,10 @@ import { errorDetail, Feedback } from './Feedback';
 import { useAssignmentActivity } from './useAssignmentActivity';
 import { Icon, Navigation, tabs, type TabId } from './Navigation';
 import './styles.css';
-import { AutoUpdate } from './AutoUpdate';
+import { useCompanionUpdates, UpdateProgressWindow } from './AutoUpdate';
 
 function App() {
+  const updates = useCompanionUpdates();
   const [activeTab, setActiveTab] = useState<TabId>('home');
   const [uploadSettingsTarget, setUploadSettingsTarget] = useState<HTMLDivElement | null>(null);
   const currentTab = useRef<TabId>('home');
@@ -235,7 +236,6 @@ function App() {
   const companionReady = accountReady && gameSetup(source).ready && !storageWarning && !history.error
     && (!queue || queue.status === 'READY' && queue.conflicts === 0 && queue.needsAuth === 0 && queue.waitingAssignment === 0 && (queue.blocked ?? 0) === 0);
   return <div className="app-shell">
-    <AutoUpdate />
     <header className="app-header"><div className="header-inner">
       <div className="brand-lockup"><span className="brand">rbgs.io</span><span className="product-name">Companion</span></div>
       <div className="connection-status"><span className={`connection-badge ${connecting ? 'is-pending' : connected ? 'is-connected' : connection === 'checking' ? 'is-pending' : 'is-unavailable'}`} role="status"><span className="status-dot" />{webConnecting ? 'Connecting…' : pairing ? 'Waiting for approval' : copy.label}</span>
@@ -280,14 +280,30 @@ function App() {
             <div className="section-body"><div ref={setUploadSettingsTarget} />{(!accountId || !capturePermissions) && <p>Connect your account and allow match uploads to manage upload options.</p>}</div>
           </section>
           <SavedVariables source={source} />
+          <section className="settings-section" aria-labelledby="settings-updates">
+            <div className="section-heading"><h2 id="settings-updates">Companion updates</h2></div>
+            <div className="section-body">
+              <button disabled={updates.action !== null} onClick={updates.check}>
+                {updates.action === 'check' ? 'Checking for updates…' : 'Check for updates'}
+              </button>
+              <p className="status-message" role="status">{updates.status || (updates.available ? `Version v${updates.available} is available.` : '')}</p>
+            </div>
+          </section>
           <details className="settings-help background-help"><summary>Running in the background</summary><p>The companion keeps running when you close this window. To stop it, right-click its icon next to the Windows clock and choose <strong>Exit</strong>.</p></details>
         </section>
       </div>
     </main>
-    <footer className="app-version">v{companionVersion}</footer>
+    <footer className="app-version">
+      {updates.available && <button className="update-notice" onClick={updates.install} disabled={updates.action !== null}>
+        <span className="update-quest-icon" aria-hidden="true">!</span>
+        {updates.action === 'install' ? 'Updating…' : updates.installError ? 'Update failed. Click to retry.' : 'Update available. Click to install.'}
+      </button>}
+      <span>v{companionVersion}</span>
+    </footer>
   </div>;
 }
 
 const root = createRoot(document.getElementById('root')!);
-root.render(<StrictMode><PrivacyProvider><App /></PrivacyProvider></StrictMode>);
+const updateWindow = new URLSearchParams(window.location.search).has('update-window');
+root.render(<StrictMode>{updateWindow ? <UpdateProgressWindow /> : <PrivacyProvider><App /></PrivacyProvider>}</StrictMode>);
 if (import.meta.hot) import.meta.hot.dispose(() => root.unmount());

@@ -20,11 +20,10 @@
   --content-width: 68rem;
 }
 * { box-sizing: border-box; }
-.update-dialog { width: min(440px, calc(100vw - 40px)); padding: 28px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); color: inherit; box-shadow: 0 24px 80px #0009; }
-.update-dialog::backdrop { background: #000b; }
-.update-dialog h2 { font-size: 1.1rem; }
-.update-dialog p { color: var(--muted); line-height: 1.6; }
-.update-dialog progress { width: 100%; height: 16px; accent-color: var(--accent); }
+.update-window { height: 100dvh; display: flex; flex-direction: column; justify-content: center; align-items: flex-start; padding: 24px 28px; border: 1px solid var(--line); background: var(--surface); }
+.update-window h2 { font-size: 1.1rem; }
+.update-window p { color: var(--muted); line-height: 1.6; }
+.update-window progress { width: 100%; height: 16px; accent-color: var(--accent); }
 [hidden] { display: none !important; }
 .visually-hidden { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0; }
 html, body, #root { height: 100%; overflow: clip; }
@@ -89,7 +88,10 @@ svg { flex-shrink: 0; }
 .companion-tabs button[aria-selected=true]::after { position: absolute; right: 0; bottom: -1px; left: 0; height: 2px; background: var(--accent); content: ''; }
 .companion-tabs button:focus-visible { outline-offset: -4px; }
 .page-scroll { flex: 1; min-height: 0; overflow-y: auto; overflow-x: hidden; }
-.app-version { flex-shrink: 0; padding: .35rem .75rem; color: var(--muted); font-size: .75rem; line-height: 1; text-align: right; font-variant-numeric: tabular-nums; }
+.app-version { flex-shrink: 0; display: flex; align-items: center; justify-content: flex-end; gap: .65rem; padding: .35rem .75rem; color: var(--muted); font-size: .75rem; line-height: 1; font-variant-numeric: tabular-nums; }
+.update-notice { min-height: 28px; padding: .15rem .3rem; border: 0; background: transparent; color: var(--accent); font-size: inherit; text-align: right; }
+.update-notice:hover:not(:disabled) { background: transparent; text-decoration: underline; }
+.update-quest-icon { color: #ffd62b; font-size: 1.25rem; font-weight: 800; line-height: 1; text-shadow: 0 1px #805700, 0 0 5px #facc1570; }
 .content { width: 100%; max-width: var(--content-width); margin: 0 auto; padding: 1.25rem 1.5rem 2rem; }
 .page-heading { margin-bottom: 1.15rem; }
 .page-heading p { margin-bottom: 0; }

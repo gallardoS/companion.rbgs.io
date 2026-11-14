@@ -12,8 +12,8 @@ Open the companion, connect your account, and select your WoW folder. Install an
 
 ## Automatic updates
 
-The companion checks for a newer version when you open it. If an update is available, a popup shows the download progress. The installer then updates the companion and reopens it automatically. Your connected account, settings, and saved matches are kept.
+The companion checks for updates when it starts and every hour while it runs, including in the system tray. To check right away, open **Settings** and click **Check for updates**.
 
-If you are offline or the download fails, you can keep using your current version. The companion will check again the next time you open it.
+When an update is available, click the yellow notice next to the version number. A popup shows the download and stays open until the updated companion appears. Your connected account, settings, and saved matches are kept.
 
 If you have an older version without automatic updates, download and install the [latest version](https://github.com/gallardoS/companion.rbgs.io/releases/latest) once to enable them.

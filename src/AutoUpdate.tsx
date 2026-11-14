@@ -1,36 +1,118 @@
 import { useEffect, useRef, useState } from 'react';
-import { Channel, invoke } from '@tauri-apps/api/core';
+import { invoke } from '@tauri-apps/api/core';
+import { listen } from '@tauri-apps/api/event';
 
-type Progress = { version: string; downloaded: number; total: number | null; installing: boolean };
+type Progress = {
+  version: string;
+  downloaded: number;
+  total: number | null;
+  installing: boolean;
+  failed: boolean;
+};
 
-export function AutoUpdate() {
-  const started = useRef(false);
-  const dialog = useRef<HTMLDialogElement>(null);
-  const [progress, setProgress] = useState<Progress | null>(null);
-  const [error, setError] = useState('');
+function afterPaint(callback: () => void) {
+  let frame = requestAnimationFrame(() => { frame = requestAnimationFrame(callback); });
+  return () => cancelAnimationFrame(frame);
+}
+
+export function useCompanionUpdates() {
+  const [available, setAvailable] = useState<string | null>(null);
+  const [action, setAction] = useState<'check' | 'install' | null>(null);
+  const [status, setStatus] = useState('');
+  const [installError, setInstallError] = useState(false);
+  const busy = useRef(false);
 
   useEffect(() => {
-    if (started.current) return;
-    started.current = true;
-    const channel = new Channel<Progress>();
-    channel.onmessage = setProgress;
-    void invoke('update_on_startup', { progress: channel }).catch(() => {
-      setError('The companion could not update. You can keep using this version and try again next time you open it.');
-    });
+    let disposed = false;
+    let receivedUpdate = false;
+    let unlisten: (() => void) | undefined;
+    const cancelPaint = afterPaint(() => { void invoke('companion_window_ready').catch(() => {}); });
+    void listen<string | null>('companion-update-available', ({ payload }) => {
+      if (disposed) return;
+      receivedUpdate = true;
+      setAvailable(payload);
+      setStatus('');
+      setInstallError(false);
+    }).then(async (unsubscribe) => {
+      if (disposed) return unsubscribe();
+      unlisten = unsubscribe;
+      const version = await invoke<string | null>('available_update');
+      if (!disposed && !receivedUpdate) setAvailable(version);
+    }).catch(() => {});
+    return () => {
+      disposed = true;
+      unlisten?.();
+      cancelPaint();
+    };
+  }, []);
+
+  async function run(next: 'check' | 'install') {
+    if (busy.current) return;
+    busy.current = true;
+    setAction(next);
+    setStatus('');
+    setInstallError(false);
+    try {
+      if (next === 'check') {
+        const version = await invoke<string | null>('check_for_updates');
+        setAvailable(version);
+        if (!version) setStatus('The companion is up to date.');
+      } else if (!await invoke<boolean>('install_update')) {
+        setAvailable(null);
+        setStatus('The companion is up to date.');
+      }
+    } catch (error) {
+      setStatus(typeof error === 'string' ? error : 'Could not complete the update. Try again.');
+      if (next === 'install') setInstallError(true);
+    } finally {
+      busy.current = false;
+      setAction(null);
+    }
+  }
+
+  return { available, action, status, installError, check: () => void run('check'), install: () => void run('install') };
+}
+
+export function UpdateProgressWindow() {
+  const [progress, setProgress] = useState<Progress | null>(null);
+  const hasProgress = progress !== null;
+
+  useEffect(() => {
+    let stopped = false;
+    let timer: number | undefined;
+    async function poll() {
+      try {
+        const next = await invoke<Progress | null>('update_window_progress');
+        if (!stopped && next) setProgress(next);
+      } finally {
+        if (!stopped) timer = window.setTimeout(() => void poll().catch(() => {}), 150);
+      }
+    }
+    void poll().catch(() => {});
+    return () => { stopped = true; window.clearTimeout(timer); };
   }, []);
 
   useEffect(() => {
-    if (progress && !dialog.current?.open) dialog.current?.showModal();
-  }, [progress]);
+    if (hasProgress) return afterPaint(() => { void invoke('update_window_ready').catch(() => {}); });
+  }, [hasProgress]);
 
-  if (!progress) return null;
-  const percent = progress.total ? Math.min(100, Math.floor(progress.downloaded * 100 / progress.total)) : null;
-  return <dialog ref={dialog} className="update-dialog" aria-labelledby="update-title" onCancel={event => { if (!error) event.preventDefault(); }}>
-    <h2 id="update-title">Updating companion to v{progress.version}</h2>
-    <div role="status" aria-live="polite">
-      <p>{error || (progress.installing ? 'Installing the update… The companion will reopen automatically.' : `Downloading the new version${percent === null ? '…' : `… ${percent}%`}`)}</p>
-    </div>
-    {!error && <progress max={100} value={progress.installing ? undefined : percent ?? undefined} aria-label="Update download" />}
-    {error && <button autoFocus onClick={() => { dialog.current?.close(); setProgress(null); }}>Continue</button>}
-  </dialog>;
+  const percent = progress?.total ? Math.min(100, Math.floor(progress.downloaded * 100 / progress.total)) : undefined;
+  let message = 'Preparing update…';
+  if (progress?.failed) {
+    message = progress.installing
+      ? 'The companion did not reopen. Try opening it from the Start menu.'
+      : 'The update could not finish downloading. You can keep using your current version.';
+  } else if (progress?.installing) {
+    message = 'Installing the update… The companion will reopen automatically.';
+  } else if (progress) {
+    message = `Downloading the new version…${percent === undefined ? '' : ` ${percent}%`}`;
+  }
+
+  return <main className="update-window" aria-labelledby="update-title">
+    <h2 id="update-title">Updating companion{progress ? ` to v${progress.version}` : ''}</h2>
+    <p role="status" aria-live="polite">{message}</p>
+    {progress?.failed
+      ? <button autoFocus onClick={() => void invoke('close_update_window').catch(() => {})}>Close</button>
+      : <progress max={100} value={progress?.installing ? undefined : percent} aria-label="Update progress" />}
+  </main>;
 }

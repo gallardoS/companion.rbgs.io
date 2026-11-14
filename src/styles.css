@@ -346,6 +346,7 @@ html, * { scrollbar-color: #facc15 #0c0e0d; scrollbar-width: thin; }
 .match-outcome { display: inline-block; color: #c3cdc0; font-weight: 500; }
 .match-outcome.is-victory { color: var(--success); }
 .match-outcome.is-defeat { color: #e9a194; }
+.match-flag-score { margin-inline-start: .35rem; font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .match-delivery-note { margin: .8rem 0 .4rem; padding: .65rem .75rem; border-radius: .4rem; background: #ffffff06; font-size: .8125rem; }
 @media (max-width: 520px) {
   .command-field { flex-wrap: wrap; }

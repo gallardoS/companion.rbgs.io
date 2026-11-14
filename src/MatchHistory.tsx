@@ -56,13 +56,28 @@ function shortStamp(value: string) {
 }
 function team(value: string | null) { return value === '0' ? 'Horde' : value === '1' ? 'Alliance' : 'Unknown'; }
 function character(value: Identity) { return `${value.name}${value.realm ? ` · ${value.realm}` : ''}`; }
-function matchResult(match: Match): 'victory' | 'defeat' | null {
+function playerTeam(match: Match): string | null {
   const name = (value: string) => value.normalize('NFC').trim().toLowerCase();
   const realm = (value: string) => name(value).replace(/\s+/g, '');
   const ownRows = match.roster.filter(row => name(row.character.name) === name(match.character.name)
     && (!row.character.realm || !match.character.realm || realm(row.character.realm) === realm(match.character.realm)));
-  if (ownRows.length !== 1 || ownRows[0].observedTeamKey === null) return null;
-  return ownRows[0].observedTeamKey === match.winner ? 'victory' : 'defeat';
+  return ownRows.length === 1 ? ownRows[0].observedTeamKey : null;
+}
+
+function flagScore(match: Match, firstTeam: string) {
+  if (match.map.gameMapId !== 489) return null;
+  let first = 0;
+  let second = 0;
+  for (const row of match.roster) {
+    if (row.flagsCaptured == null || row.observedTeamKey === null) return null;
+    if (row.observedTeamKey === firstTeam) first += row.flagsCaptured;
+    else second += row.flagsCaptured;
+  }
+  if (!Number.isSafeInteger(first) || !Number.isSafeInteger(second)) return null;
+  return {
+    value: `${first}–${second}`,
+    label: `Flag captures: ${team(firstTeam)} ${first}, ${team(firstTeam === '0' ? '1' : '0')} ${second}`,
+  };
 }
 
 const scoreboardColumns = [
@@ -207,10 +222,24 @@ export function MatchHistory({ history, tests, accountId, sourceSelected, onSett
     {!error && sourceSelected && view?.status !== 'READY' && <p role="status">{view?.message ?? 'Loading saved matches…'}</p>}
     {!matches.length && view?.status === 'READY' && !view.queue?.conflicts && view.queue?.status !== 'STORAGE_UNAVAILABLE' && <div className="compact-empty"><h3>No match history yet</h3><p>Your matches appear here after you save results in WoW.</p></div>}
       {matches.slice(0, limit).map(match => {
-        const result = matchResult(match);
+        const ownTeam = playerTeam(match);
+        const result = ownTeam === null ? null : ownTeam === match.winner ? 'victory' : 'defeat';
+        const score = flagScore(match, ownTeam ?? match.winner);
         const state = deliveryState(match, queue ?? null);
         return <details className={`history-match${result ? ` is-${result}` : ''}`} key={`match-${match.captureId}`}>
-        <summary><span className="match-identity"><strong>{match.map.observedName}</strong><span className="match-meta"><span>{character(match.character)}<span className={`match-outcome${result ? ` is-${result}` : ''}`}>{result === 'victory' ? 'Victory' : result === 'defeat' ? 'Defeat' : `${team(match.winner)} won`}</span></span><time dateTime={match.endedAt} title={stamp(match.endedAt)}>{shortStamp(match.endedAt)}</time></span></span><DeliveryBadge match={match} queue={view?.queue ?? null} /></summary>
+        <summary>
+          <span className="match-identity">
+            <strong>{match.map.observedName}</strong>
+            <span className="match-meta">
+              <span>{character(match.character)}<span className={`match-outcome${result ? ` is-${result}` : ''}`}>
+                {result === 'victory' ? 'Victory' : result === 'defeat' ? 'Defeat' : `${team(match.winner)} won`}
+                {score && <span className="match-flag-score" title={score.label}><span className="visually-hidden">{score.label}</span><span aria-hidden="true">{score.value}</span></span>}
+              </span></span>
+              <time dateTime={match.endedAt} title={stamp(match.endedAt)}>{shortStamp(match.endedAt)}</time>
+            </span>
+          </span>
+          <DeliveryBadge match={match} queue={view?.queue ?? null} />
+        </summary>
         <TestMatchProgress step={3} uploaded={state === 'ACKNOWLEDGED'} />
         <div className="test-next-step"><strong>{state === 'ACKNOWLEDGED' ? 'Results uploaded' : state === 'SENDING' ? 'Uploading saved results' : state ? deliveryLabels[state] : 'Final results saved on this PC'}</strong><p>{state === 'ACKNOWLEDGED' ? 'rbgs.io has received this saved version. Uploading does not verify the result.' : state && deliveryHelp[state] ? deliveryHelp[state] : 'Check Upload options to upload results for an assigned test.'}</p></div>
         <p className="saved-data-note">{match.roster.length} {match.roster.length === 1 ? 'player' : 'players'} in the saved scoreboard.</p>
